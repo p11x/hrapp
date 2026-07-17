@@ -179,8 +179,9 @@ export function EmployeeDashboard() {
       })
 
       hrToast.success('Code Generated!', `Your Employee Code is ${code}`)
-    } catch (_) {
-      hrToast.error('Generation Failed', 'Unable to generate employee code')
+    } catch (error: any) {
+      console.error('Failed to generate code:', error)
+      hrToast.error('Generation Failed', error?.message || 'Unable to generate employee code')
     }
   }
 

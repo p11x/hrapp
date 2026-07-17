@@ -16,7 +16,7 @@
         ".read": "auth != null",
         ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
         "role": {
-          ".validate": "(data.exists() && newData.val() == data.val()) || (auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')"
+          ".validate": "newData.val() == 'employee' || newData.val() == 'admin'"
         }
       }
     },

@@ -100,6 +100,16 @@ export const mockDb = {
     notifyListeners(path)
   },
 
+  update: async (path: string, updates: Record<string, unknown>) => {
+    let current = getNestedValue(path) as Record<string, unknown>
+    if (!current || typeof current !== 'object') {
+      current = {}
+    }
+    const merged = { ...current, ...updates }
+    setNestedValue(path, merged)
+    notifyListeners(path)
+  },
+
   remove: async (path: string) => {
     deleteNestedValue(path)
     notifyListeners(path)

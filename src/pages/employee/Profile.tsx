@@ -84,7 +84,7 @@ export function Profile() {
     if (!user?.uid) return
     try {
       const db = await getDatabase()
-      await (db as any).set(`users/${user.uid}`, {
+      await (db as any).update(`users/${user.uid}`, {
         ...data,
         avatar: avatarUrl,
       })

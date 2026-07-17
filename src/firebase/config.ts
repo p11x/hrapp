@@ -1,6 +1,6 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
 import { getAuth as fbGetAuth } from 'firebase/auth'
-import { getDatabase as fbGetDatabase, ref, onValue, get, set, remove } from 'firebase/database'
+import { getDatabase as fbGetDatabase, ref, onValue, get, set, remove, update } from 'firebase/database'
 import { getStorage as fbGetStorage } from 'firebase/storage'
 
 let firebaseApp: any = null
@@ -105,6 +105,7 @@ export async function getDatabase() {
       return { exists: () => snap.exists(), val: () => snap.val() }
     }
     const dbSetCall = async (path: string, value: any) => set(ref(fbDb, path), value)
+    const dbUpdateCall = async (path: string, value: any) => update(ref(fbDb, path), value)
     const dbRemoveCall = async (path: string) => remove(ref(fbDb, path))
     const onValueCall = (path: string, callback: (snapshot: { val: () => any }) => void) => {
       const unsub = onValue(ref(fbDb, path), (snap: any) => callback({ val: () => snap.val() }))
@@ -113,6 +114,7 @@ export async function getDatabase() {
     _database = {
       get: dbGetCall,
       set: dbSetCall,
+      update: dbUpdateCall,
       remove: dbRemoveCall,
       onValue: onValueCall,
     }

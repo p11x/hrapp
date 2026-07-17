@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
@@ -7,7 +7,6 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { CommandPalette } from './components/CommandPalette'
 import { MockModeBadge } from './components/MockModeBadge'
 import AppRouter from './AppRouter'
-import { getDatabase } from './firebase/config'
 import './index.css'
 
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
@@ -16,30 +15,11 @@ if (useMock) {
   mockDb.startRailSimulation()
 }
 
-function ClearTestUsers() {
-  useEffect(() => {
-    // Only clear once on load
-    getDatabase().then(async (db: any) => {
-      try {
-        const testIds = ['emp-001', 'emp-002', 'emp-003', 'emp-004', 'emp-005', 'emp-006']
-        for (const id of testIds) {
-          await db.remove(`employees/${id}`)
-        }
-        console.log('Test employees cleared.')
-      } catch (err) {
-        console.error('Failed to clear test employees', err)
-      }
-    })
-  }, [])
-  return null
-}
-
 createRoot(document.getElementById('root')!)!.render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
-          <ClearTestUsers />
           <AppRouter />
           <CommandPalette />
           <MockModeBadge />

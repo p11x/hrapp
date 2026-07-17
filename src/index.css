@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F5F6FB] text-text-hi font-body;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .text-mono {
+    font-family: theme('fontFamily.mono');
+  }
+  
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+  
+  .motion-reduced {
+    @media (prefers-reduced-motion: reduce) {
+      transition: none !important;
+      transform: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary text-white font-medium rounded hover:bg-primary/90 transition-colors focus-ring;
+  }
+  
+  .btn-outline {
+    @apply px-4 py-2 border border-soft text-text-hi rounded hover:bg-primary-dim transition-colors focus-ring;
+  }
+}

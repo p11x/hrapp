@@ -1,0 +1,162 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')"
+      }
+    },
+
+    "employees": {
+      ".read": "auth != null",
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'",
+        "role": {
+          ".validate": "newData.val() == 'employee' || newData.val() == 'admin'"
+        }
+      }
+    },
+
+    "attendance": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.uid == $uid"
+      }
+    },
+
+    "leaves": {
+      ".read": "auth != null",
+      "$leaveId": {
+        ".write": "auth != null && (root.child('leaves').child($leaveId).child('employeeId').val() == auth.uid || newData.child('employeeId').val() == auth.uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')"
+      }
+    },
+
+    "Documents": {
+      ".read": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth != null",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')"
+      }
+    },
+
+    "holidays": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "announcements": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "tickets": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$ticketId": {
+        ".write": "root.child('tickets').child($ticketId).child('status').val() != null ? (auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin') : auth != null"
+      }
+    },
+
+    "messages": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "audit": {
+      ".read": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".write": "false"
+    },
+
+    "admins": {
+      ".read": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "Config": {
+      "setupComplete": {
+        ".read": true,
+        ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      }
+    },
+
+    "presence": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+
+    "railEvents": {
+      ".read": true,
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "projects": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "tasks": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || (auth != null && newData.child('assignee').val() == auth.uid)"
+    },
+
+    "taskComments": {
+      "$taskId": {
+        ".read": "auth != null && (root.child('tasks').child($taskId).child('assignee').val() == auth.uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null"
+      }
+    },
+
+    "messages_Chat": {
+      "$threadId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+
+    "clients": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "contacts": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "timesheets": {
+      ".read": "auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "bankDetails": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.uid == $uid"
+      }
+    },
+
+    "education": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.uid == $uid"
+      }
+    },
+
+    "OfferLetters": {
+      ".read": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    },
+
+    "Payslips": {
+      ".read": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth != null",
+      ".write": "auth.token.role == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'admin'"
+    }
+  }
+}

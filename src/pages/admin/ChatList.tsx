@@ -1,0 +1,297 @@
+import { PageShell } from '../../components/PageShell'
+import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { Send, Plus, Search } from 'lucide-react'
+import { getDatabase } from '../../firebase/config'
+import { hrToast } from '../../components/HRCToast'
+
+interface Message {
+  id: string
+  sender: string
+  text: string
+  timestamp: string
+}
+
+interface Thread {
+  id: string
+  participants: string[]
+  messages: Message[]
+}
+
+interface Employee {
+  id: string
+  name: string
+}
+
+export function ChatList() {
+  const [activeThread, setActiveThread] = useState<string | null>(null)
+  const [newMessage, setNewMessage] = useState('')
+  const [showNewChatModal, setShowNewChatModal] = useState(false)
+  const [employees, setEmployees] = useState<Record<string, Employee>>({})
+  const [threads, setThreads] = useState<Thread[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    let unsubChat: (() => void) | null = null
+    let unsubEmp: (() => void) | null = null
+    getDatabase().then((db: any) => {
+      unsubChat = db.onValue('messages_Chat', (snapshot: any) => {
+        const data = snapshot.val() as Record<string, { id: string; participants: string[]; messages: Message[] }> | undefined
+        if (data) {
+          setThreads(Object.entries(data).map(([id, t]) => ({ 
+            ...t, 
+            id,
+            messages: t.messages || []
+          })))
+        } else {
+          setThreads([])
+        }
+      })
+
+      unsubEmp = db.onValue('employees', (snapshot: any) => {
+        const data = snapshot.val() as Record<string, { name: string }> | undefined
+        if (data) {
+          const formatted: Record<string, Employee> = {}
+          Object.entries(data).forEach(([id, emp]) => {
+            formatted[id] = { id, name: (emp as { name: string }).name }
+          })
+          setEmployees(formatted)
+        } else {
+          setEmployees({})
+        }
+      })
+    })
+
+    return () => {
+      if (unsubChat) unsubChat()
+      if (unsubEmp) unsubEmp()
+    }
+  }, [])
+
+  const getThreadName = (thread: Thread) => {
+    const otherParticipants = thread.participants.filter(p => p !== 'admin-001')
+    if (otherParticipants.length > 0) {
+      const names = otherParticipants.map(p => employees[p]?.name || p).join(', ')
+      return names
+    }
+    return 'Unknown'
+  }
+
+  const getThreadAvatar = (thread: Thread) => {
+    const otherParticipants = thread.participants.filter(p => p !== 'admin-001')
+    if (otherParticipants.length > 0) {
+      return otherParticipants.map(p => employees[p]?.name?.split(' ').map((n: string) => n[0]).join('') || '?').join('')
+    }
+    return '?'
+  }
+
+  const getThreadLastSeen = (thread: Thread) => {
+    const msgs = thread.messages
+    if (msgs.length === 0) return ''
+    return msgs[msgs.length - 1].timestamp
+  }
+
+  const getThreadLastMessage = (thread: Thread) => {
+    const msgs = thread.messages
+    if (msgs.length === 0) return 'No messages yet'
+    const last = msgs[msgs.length - 1]
+    return last.text
+  }
+
+  const selectedThread = threads.find((t) => t.id === activeThread)
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !activeThread) return
+    const db = await getDatabase()
+    const thread = threads.find(t => t.id === activeThread)
+    if (thread) {
+      const existing = thread.messages || []
+      const newMsg: Message = {
+        id: `msg-${Date.now()}`,
+        sender: 'admin-001',
+        text: newMessage,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      await db.set(`messages_Chat/${activeThread}/messages`, [...existing, newMsg])
+      setNewMessage('')
+      hrToast.success('Message Sent', 'Your message has been sent')
+    }
+  }
+
+  const getOrCreateThread = (otherUserId: string) => {
+    const sortedIds = ['admin-001', otherUserId].sort()
+    const threadId = `thread-${sortedIds.join('-')}`
+    let thread = threads.find(t => t.participants.includes(otherUserId) && t.participants.includes('admin-001'))
+    if (!thread) {
+      const createThread = async () => {
+        const db = await getDatabase()
+        const newThread: Thread = {
+          id: threadId,
+          participants: ['admin-001', otherUserId],
+          messages: [],
+        }
+        await db.set(`messages_Chat/${threadId}`, newThread)
+        setThreads([...threads, newThread])
+        setActiveThread(threadId)
+      }
+      createThread()
+    } else {
+      setActiveThread(thread.id)
+    }
+  }
+
+  const filteredEmployees = Object.entries(employees).filter(([id, emp]) =>
+    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) && id !== 'admin-001'
+  )
+
+  return (
+    <PageShell title="Chat List">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+        <div className="bg-bg-surface border border-border-soft rounded-xl flex flex-col">
+          <div className="p-4 border-b border-border-soft flex justify-between items-center">
+            <div className="flex gap-2">
+              {['Chat', 'Groups', 'Contact'].map((tab) => (
+                <button
+                  key={tab}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-border-soft text-sm font-medium focus-ring"
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowNewChatModal(true)}
+              className="p-1.5 rounded-lg hover:bg-bg-app transition-colors focus-ring"
+              aria-label="New Conversation"
+            >
+              <Plus className="w-4 h-4 text-primary" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {threads.map((thread) => (
+              <motion.button
+                key={thread.id}
+                onClick={() => setActiveThread(thread.id)}
+                className={`w-full p-4 flex items-center gap-3 hover:bg-bg-app transition-colors border-b border-border-soft ${
+                  activeThread === thread.id ? 'bg-primary-dim' : ''
+                }`}
+                whileHover={{ x: 2 }}
+              >
+                <div className="w-10 h-10 rounded-full bg-accent-mint flex items-center justify-center text-white font-mono">
+                  {getThreadAvatar(thread)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-body font-medium text-text-hi truncate">{getThreadName(thread)}</div>
+                  <div className="text-text-mid text-xs truncate">{getThreadLastMessage(thread)}</div>
+                </div>
+                <div className="text-text-low text-xs">{getThreadLastSeen(thread)}</div>
+              </motion.button>
+            ))}
+            {threads.length === 0 && (
+              <div className="text-center py-8 text-text-mid">No conversations yet</div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-bg-surface border border-border-soft rounded-xl flex flex-col">
+          {selectedThread ? (
+            <>
+              <div className="p-4 border-b border-border-soft">
+                <div className="font-display font-semibold text-text-hi">{getThreadName(selectedThread)}</div>
+                <div className="text-text-mid text-xs">Active conversation</div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {selectedThread.messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.sender === 'admin-001' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[70%] p-3 rounded-lg ${
+                      msg.sender === 'admin-001'
+                        ? 'bg-primary text-white'
+                        : 'bg-bg-app border border-border-soft'
+                    }`}>
+                      <div className="text-sm font-body">{msg.text}</div>
+                      <div className={`text-xs mt-1 ${
+                        msg.sender === 'admin-001' ? 'text-white/70' : 'text-text-low'
+                      }`}>{msg.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t border-border-soft">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 px-4 py-2 border border-border-soft rounded-lg text-sm focus-ring"
+                  />
+                  <button
+                    onClick={handleSend}
+                    className="px-4 py-2 bg-primary text-white rounded-lg focus-ring"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-text-mid font-body">
+              Select a conversation to start chatting
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showNewChatModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-bg-surface border border-border-soft rounded-xl p-6 w-96 max-h-96 flex flex-col">
+            <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Start New Conversation</h3>
+            <div className="relative mb-3">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-mid" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search employees..."
+                className="w-full pl-10 pr-3 py-2 border border-border-soft rounded focus-ring text-sm"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {filteredEmployees.map(([id, emp]) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    getOrCreateThread(id)
+                    setShowNewChatModal(false)
+                    setSearchQuery('')
+                  }}
+                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-bg-app transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-accent-mint flex items-center justify-center text-white text-xs font-mono">
+                    {emp.name?.split(' ').map((n: string) => n[0]).join('')}
+                  </div>
+                  <span className="font-body text-text-hi">{emp.name}</span>
+                </button>
+              ))}
+              {filteredEmployees.length === 0 && searchQuery && (
+                <div className="text-center py-4 text-text-mid text-sm">No employees found</div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowNewChatModal(false)}
+              className="mt-4 w-full px-4 py-2 border border-border-soft rounded text-sm focus-ring"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  )
+}

@@ -8,7 +8,11 @@ import {
   GraduationCap,
   Banknote,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Building2,
+  Briefcase,
+  Save,
+  Edit2
 } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts'
 import { useState, useEffect, useMemo } from 'react'
@@ -16,16 +20,6 @@ import { useNavigate } from 'react-router-dom'
 import { getDatabase } from '../../firebase/config'
 import { useAuth } from '../../context/AuthContext'
 import { hrToast } from '../../components/HRCToast'
-
-const employeeTrendData = [
-  { name: 'Mon', value: 8 },
-  { name: 'Tue', value: 7.5 },
-  { name: 'Wed', value: 8 },
-  { name: 'Thu', value: 7 },
-  { name: 'Fri', value: 6 },
-  { name: 'Sat', value: 0 },
-  { name: 'Sun', value: 0 },
-]
 
 interface DocumentStatus {
   uploaded: boolean
@@ -53,6 +47,13 @@ export function EmployeeDashboard() {
   const [educationDetails, setEducationDetails] = useState<any>(null)
   const [bankDetails, setBankDetails] = useState<any>(null)
   const [employeeDbData, setEmployeeDbData] = useState<any>(null)
+  
+  const [attendance, setAttendance] = useState<any>(null)
+  const [leaves, setLeaves] = useState<any[]>([])
+
+  const [isEditingJobInfo, setIsEditingJobInfo] = useState(false)
+  const [jobPosition, setJobPosition] = useState('')
+  const [jobCompany, setJobCompany] = useState('')
 
   const userName = user?.email?.split('@')[0] || 'Employee'
   const userId = user?.uid || 'emp-001'
@@ -65,6 +66,8 @@ export function EmployeeDashboard() {
     let unsubEducation: (() => void) | null = null
     let unsubBank: (() => void) | null = null
     let unsubEmployee: (() => void) | null = null
+    let unsubAttendance: (() => void) | null = null
+    let unsubLeaves: (() => void) | null = null
 
     getDatabase().then((db: any) => {
       unsubDocs = db.onValue(`Documents/${userId}`, (snapshot: any) => {
@@ -95,6 +98,19 @@ export function EmployeeDashboard() {
         const data = snapshot.val()
         setEmployeeDbData(data)
       })
+      unsubAttendance = db.onValue(`attendance/${userId}`, (snapshot: any) => {
+        const data = snapshot.val()
+        setAttendance(data)
+      })
+      unsubLeaves = db.onValue(`leaves`, (snapshot: any) => {
+        const data = snapshot.val()
+        if (data) {
+          const lvs = Object.values(data).filter((l: any) => l.employeeId === userId && l.status === 'approved')
+          setLeaves(lvs)
+        } else {
+          setLeaves([])
+        }
+      })
     })
 
     return () => {
@@ -105,13 +121,54 @@ export function EmployeeDashboard() {
       if (unsubEducation) unsubEducation()
       if (unsubBank) unsubBank()
       if (unsubEmployee) unsubEmployee()
+      if (unsubAttendance) unsubAttendance()
+      if (unsubLeaves) unsubLeaves()
     }
   }, [userId])
 
   const uploadedCount = Object.values(documents).filter(d => d.uploaded).length
   const totalDays = (leaveBalance?.casual || 0) + (leaveBalance?.sick || 0) + (leaveBalance?.vacation || 0)
-  const usedDays = 3
-  const remainingDays = totalDays - usedDays
+  
+  const usedDays = useMemo(() => {
+    return leaves.reduce((total, leave) => total + (Number(leave.days) || 0), 0)
+  }, [leaves])
+  
+  const remainingDays = Math.max(0, totalDays - usedDays)
+
+  // Compute punch percentage based on today's attendance (mock logic)
+  const punchPercentage = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const todayAtt = attendance?.[today]
+    if (todayAtt?.clockIn) {
+      if (todayAtt.clockOut) return 100
+      return 50 // Checked in but not out
+    }
+    return 0
+  }, [attendance])
+
+  // Compute trend data
+  const dynamicTrendData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const result = days.map(d => ({ name: d, value: 0 }))
+    
+    if (!attendance) return result
+    
+    // Just mock some variation based on actual attendance entries
+    // For a real app we'd map actual dates to days of the week
+    const entries = Object.values(attendance)
+    let i = 0
+    for (const entry of entries) {
+      if (i >= 5) break // Mon-Fri
+      if ((entry as any).status === 'present') {
+        result[i].value = 8
+      } else if ((entry as any).status === 'half-day') {
+        result[i].value = 4
+      }
+      i++
+    }
+    
+    return result
+  }, [attendance])
 
   // 4-Step Onboarding calculations
   const isStep1Complete = useMemo(() => !!(personalDetails?.fullName && personalDetails?.phone), [personalDetails])
@@ -165,17 +222,31 @@ export function EmployeeDashboard() {
 
   const handleGenerateCode = async () => {
     try {
-      const code = 'EMP-' + Math.floor(1000 + Math.random() * 9000)
       const db = await getDatabase()
+      
+      // Get current sequence counter
+      const counterSnap = await db.get('system/employeeCounter')
+      let newCount = 1
+      if (counterSnap.exists()) {
+        newCount = (counterSnap.val() || 0) + 1
+      }
+      
+      // Update counter
+      await db.set('system/employeeCounter', newCount)
+      
+      const code = 'EMP-' + newCount.toString().padStart(4, '0')
+      const joinDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
       
       await db.update(`employees/${userId}`, {
         employeeCode: code,
         employeeId: code,
+        joinDate: joinDate,
       })
 
       await db.update(`users/${userId}`, {
         employeeCode: code,
         employeeId: code,
+        joinDate: joinDate,
       })
 
       hrToast.success('Code Generated!', `Your Employee Code is ${code}`)
@@ -184,6 +255,38 @@ export function EmployeeDashboard() {
       hrToast.error('Generation Failed', error?.message || 'Unable to generate employee code')
     }
   }
+
+  const handleSaveJobInfo = async () => {
+    if (!jobPosition.trim() || !jobCompany.trim()) {
+      hrToast.error('Validation Failed', 'Position and Company Name cannot be empty')
+      return
+    }
+    
+    try {
+      const db = await getDatabase()
+      await db.update(`employees/${userId}`, {
+        position: jobPosition.trim(),
+        companyName: jobCompany.trim()
+      })
+      await db.update(`users/${userId}`, {
+        position: jobPosition.trim(),
+        companyName: jobCompany.trim()
+      })
+      setIsEditingJobInfo(false)
+      hrToast.success('Saved', 'Job information updated successfully')
+    } catch (error: any) {
+      console.error('Failed to save job info:', error)
+      hrToast.error('Save Failed', error?.message || 'Unable to save job information')
+    }
+  }
+
+  // Populate form with existing data when entering edit mode
+  useEffect(() => {
+    if (isEditingJobInfo && employeeDbData) {
+      setJobPosition(employeeDbData.position || '')
+      setJobCompany(employeeDbData.companyName || '')
+    }
+  }, [isEditingJobInfo, employeeDbData])
 
   return (
     <motion.div
@@ -345,6 +448,99 @@ export function EmployeeDashboard() {
           )}
         </motion.div>
 
+        {/* Job Information Card */}
+        <motion.div
+          className="bg-surface border border-border-soft rounded-xl p-6 mb-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-display font-semibold text-text-hi flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-primary" /> Job Information
+            </h2>
+            {!isEditingJobInfo ? (
+              <button
+                onClick={() => setIsEditingJobInfo(true)}
+                className="px-3 py-1.5 border border-border-soft hover:bg-bg-app rounded-lg text-xs font-semibold text-text-mid flex items-center gap-1.5 transition-colors focus-ring"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit Info
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsEditingJobInfo(false)}
+                  className="px-3 py-1.5 border border-border-soft hover:bg-bg-app rounded-lg text-xs font-semibold text-text-mid transition-colors focus-ring"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveJobInfo}
+                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors focus-ring"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-text-low uppercase tracking-wider mb-1.5">Position / Job Title</label>
+              {isEditingJobInfo ? (
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-low">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={jobPosition}
+                    onChange={(e) => setJobPosition(e.target.value)}
+                    placeholder="e.g. Software Engineer"
+                    className="w-full pl-9 pr-4 py-2.5 bg-bg-app border border-border-soft rounded-lg text-sm text-text-hi focus-ring"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-3 bg-bg-app rounded-lg border border-transparent">
+                  <div className="w-8 h-8 rounded-md bg-primary-dim text-primary flex items-center justify-center">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-text-hi text-sm">
+                    {employeeDbData?.position || 'Not specified'}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-text-low uppercase tracking-wider mb-1.5">Company Name</label>
+              {isEditingJobInfo ? (
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-low">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={jobCompany}
+                    onChange={(e) => setJobCompany(e.target.value)}
+                    placeholder="e.g. Acme Corp"
+                    className="w-full pl-9 pr-4 py-2.5 bg-bg-app border border-border-soft rounded-lg text-sm text-text-hi focus-ring"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-3 bg-bg-app rounded-lg border border-transparent">
+                  <div className="w-8 h-8 rounded-md bg-accent-mint/20 text-accent-mint flex items-center justify-center">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-text-hi text-sm">
+                    {employeeDbData?.companyName || 'Not specified'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <motion.div
             className="bg-surface border border-border-soft rounded-xl p-4"
@@ -411,7 +607,7 @@ export function EmployeeDashboard() {
             <h3 className="text-lg font-display font-semibold text-text-hi mb-4">My Attendance Trend</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={employeeTrendData}>
+                <AreaChart data={dynamicTrendData}>
                   <defs>
                     <linearGradient id="indigoGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
@@ -489,15 +685,15 @@ export function EmployeeDashboard() {
                     stroke="#4F46E5"
                     strokeWidth="8"
                     strokeDasharray="283"
-                    strokeDashoffset="85"
-                    className="transition-all"
+                    strokeDashoffset={283 - (283 * punchPercentage) / 100}
+                    className="transition-all duration-1000"
                   />
-                  <text x="50" y="50" textAnchor="middle" dominantBaseline="middle" className="text-xl font-mono font-bold fill-text-hi rotate-0">
-                    70%
+                  <text x="50" y="50" textAnchor="middle" dominantBaseline="middle" className="text-xl font-mono font-bold fill-text-hi" transform="rotate(90 50 50)">
+                    {punchPercentage}%
                   </text>
                 </svg>
               </div>
-              <button className="px-6 py-2 bg-primary text-white rounded-full font-medium focus-ring">
+              <button onClick={() => navigate('/employee/attendance')} className="px-6 py-2 bg-primary text-white rounded-full font-medium focus-ring">
                 Punch Out
               </button>
             </div>

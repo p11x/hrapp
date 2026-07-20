@@ -50,12 +50,12 @@ export function Chat() {
         }
       })
 
-      unsubEmp = db.onValue('employees', (snapshot: any) => {
-        const data = snapshot.val() as Record<string, { name: string }> | undefined
+      unsubEmp = db.onValue('users', (snapshot: any) => {
+        const data = snapshot.val() as Record<string, { fullName?: string, name?: string }> | undefined
         if (data) {
           const formatted: Record<string, Employee> = {}
           Object.entries(data).forEach(([id, emp]) => {
-            formatted[id] = { id, name: (emp as { name: string }).name }
+            formatted[id] = { id, name: emp.fullName || emp.name || 'Unknown User' }
           })
           setEmployees(formatted)
         } else {
@@ -72,7 +72,7 @@ export function Chat() {
   const getThreadName = (thread: Thread) => {
     const otherParticipants = thread.participants.filter(p => p !== userId)
     if (otherParticipants.length > 0) {
-      const names = otherParticipants.map(p => employees[p]?.name || (p === 'admin-001' ? 'Admin' : p)).join(', ')
+      const names = otherParticipants.map(p => employees[p]?.name || p).join(', ')
       return names
     }
     return 'Unknown'
@@ -82,7 +82,6 @@ export function Chat() {
     const otherParticipants = thread.participants.filter(p => p !== userId)
     if (otherParticipants.length > 0) {
       return otherParticipants.map(p => {
-        if (p === 'admin-001') return 'A'
         return employees[p]?.name?.split(' ').map((n: string) => n[0]).join('') || '?'
       }).join('')
     }

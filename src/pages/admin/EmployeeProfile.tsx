@@ -26,6 +26,9 @@ interface EmployeeProfileData {
   dob?: string
   gender?: string
   address?: string
+  uanNumber?: string
+  employeeCode?: string
+  position?: string
 }
 
 interface DocumentStatus {
@@ -36,6 +39,9 @@ interface DocumentStatus {
 
 interface EmployeeSeed {
   name?: string
+  uanNumber?: string
+  employeeCode?: string
+  position?: string
 }
 
 interface UserSeed {
@@ -46,6 +52,8 @@ interface UserSeed {
   gender?: string
   address?: string
   whatsapp?: string
+  employeeCode?: string
+  position?: string
 }
 
 interface OfferLetter {
@@ -103,6 +111,9 @@ export function EmployeeProfile() {
           dob: userVal?.dob || undefined,
           gender: userVal?.gender || undefined,
           address: userVal?.address || undefined,
+          uanNumber: empVal?.uanNumber || undefined,
+          employeeCode: empVal?.employeeCode || userVal?.employeeCode || undefined,
+          position: empVal?.position || userVal?.position || undefined,
         })
       }
 
@@ -282,6 +293,12 @@ export function EmployeeProfile() {
     { key: 'signature', label: 'Signature' },
   ]
 
+  const eduDocRows = [
+    { key: 'sslc', label: 'SSLC Certificate' },
+    { key: 'hsc', label: '12th/PUC Certificate' },
+    { key: 'degree', label: 'Degree Certificate' },
+  ]
+
   if (loading) {
     return (
       <PageShell title="Employee Profile">
@@ -385,6 +402,8 @@ export function EmployeeProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { icon: User, label: 'Full Name', value: profile.name },
+              { icon: null, label: 'Employee Code', value: profile.employeeCode || '—' },
+              { icon: null, label: 'Role', value: profile.position || '—' },
               { icon: Phone, label: 'Phone', value: profile.phone || '—' },
               { icon: null, label: 'WhatsApp', value: profile.whatsapp || '—' },
               { icon: Mail, label: 'Email', value: profile.email },
@@ -464,9 +483,65 @@ export function EmployeeProfile() {
           className="bg-bg-surface border border-border-soft rounded-xl p-6"
           whileHover={{ y: -2 }}
         >
+          <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Provident Fund</h3>
+          <div className="space-y-2">
+            <div className="flex gap-2 text-sm">
+              <span className="text-text-low w-32">UAN Number</span>
+              <span className="text-text-hi font-mono">{profile.uanNumber || 'Not provided'}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="bg-bg-surface border border-border-soft rounded-xl p-6"
+          whileHover={{ y: -2 }}
+        >
           <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Documents</h3>
           <div className="divide-y divide-border-soft">
             {docRows.map((doc) => {
+              const docStatus = documents[doc.key] || { uploaded: false }
+              return (
+                <div key={doc.key} className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-text-low" />
+                    <span className="text-text-hi font-body">{doc.label}</span>
+                  </div>
+                  {docStatus.uploaded ? (
+                    <div className="flex items-center gap-2 text-accent-mint">
+                      <button
+                        onClick={() => handleView(docStatus.url)}
+                        className="p-1.5 rounded bg-accent-mint/10 hover:bg-accent-mint/20 transition-colors focus-ring"
+                        aria-label="Preview"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDownload(docStatus.url, docStatus.filename)}
+                        className="p-1.5 rounded bg-accent-mint/10 hover:bg-accent-mint/20 transition-colors focus-ring"
+                        aria-label="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-text-low flex items-center gap-1">
+                      <X className="w-4 h-4" />
+                      Not uploaded
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="bg-bg-surface border border-border-soft rounded-xl p-6"
+          whileHover={{ y: -2 }}
+        >
+          <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Educational Documents</h3>
+          <div className="divide-y divide-border-soft">
+            {eduDocRows.map((doc) => {
               const docStatus = documents[doc.key] || { uploaded: false }
               return (
                 <div key={doc.key} className="flex items-center justify-between py-3">

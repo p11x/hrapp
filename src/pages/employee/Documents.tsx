@@ -46,13 +46,23 @@ export function Documents() {
   const [payslips, setPayslips] = useState<Payslip[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState<string | null>(null)
+  const [uanNumber, setUanNumber] = useState('')
+  const [isEditingUan, setIsEditingUan] = useState(false)
 
   useEffect(() => {
     let unsubDocs: (() => void) | null = null
     let unsubOffers: (() => void) | null = null
     let unsubPayslips: (() => void) | null = null
+    let unsubEmployee: (() => void) | null = null
     
     getDatabase().then((db: any) => {
+      unsubEmployee = db.onValue(`employees/${userId}`, (snapshot: any) => {
+        const data = snapshot.val()
+        if (data?.uanNumber) {
+          setUanNumber(data.uanNumber)
+        }
+      })
+
       unsubDocs = db.onValue('Documents', (snapshot: any) => {
         const data = snapshot.val() as Record<string, Record<string, DocumentStatus>> | undefined
         if (data && data[userId]) {
@@ -96,8 +106,30 @@ export function Documents() {
       if (unsubDocs) unsubDocs()
       if (unsubOffers) unsubOffers()
       if (unsubPayslips) unsubPayslips()
+      if (unsubEmployee) unsubEmployee()
     }
   }, [userId])
+
+  const handleSaveUan = async () => {
+    if (!uanNumber.trim()) {
+      hrToast.error('Validation Error', 'UAN Number cannot be empty')
+      return
+    }
+    try {
+      const db = await getDatabase()
+      await db.update(`employees/${userId}`, {
+        uanNumber: uanNumber.trim(),
+      })
+      await db.update(`users/${userId}`, {
+        uanNumber: uanNumber.trim(),
+      })
+      setIsEditingUan(false)
+      hrToast.success('Saved', 'UAN Number saved successfully')
+    } catch (error: any) {
+      console.error('Failed to save UAN:', error)
+      hrToast.error('Save Failed', 'Unable to save UAN Number')
+    }
+  }
 
   const handleUpload = async (docType: string, file: File) => {
     if (!user?.uid) return
@@ -268,25 +300,71 @@ export function Documents() {
         </div>
         <div>
           <h3 className="text-lg font-display font-semibold text-text-hi mb-3">Provident Fund</h3>
-          <div className="bg-surface border border-border-soft rounded-xl overflow-hidden p-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-surface border border-border-soft rounded-xl overflow-hidden p-4 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary-dim rounded-lg flex items-center justify-center">
                   <FileText className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-text-hi font-body font-medium">UAN Number Generation</div>
+                  <div className="text-text-hi font-body font-medium">UAN Number</div>
                   <div className="text-sm text-text-mid">
-                    Generate your Universal Account Number
+                    Submit your Universal Account Number
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => window.open('https://unifiedportal-mem.epfindia.gov.in/memberinterface/', '_blank')}
-                className="px-4 py-1.5 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors focus-ring"
-              >
-                Generate
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.open('https://unifiedportal-mem.epfindia.gov.in/memberinterface/', '_blank')}
+                  className="px-4 py-1.5 border border-primary text-primary hover:bg-primary-dim rounded-full text-sm font-medium transition-colors focus-ring"
+                >
+                  Generate UAN
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border-soft">
+              {!isEditingUan && uanNumber ? (
+                <div className="flex items-center justify-between bg-bg-app p-3 rounded-lg border border-border-soft">
+                  <div>
+                    <span className="text-xs font-bold text-text-low uppercase tracking-wider block mb-1">Your UAN</span>
+                    <span className="font-mono font-bold text-text-hi text-lg">{uanNumber}</span>
+                  </div>
+                  <button
+                    onClick={() => setIsEditingUan(true)}
+                    className="px-4 py-1.5 border border-border-soft hover:bg-surface rounded-lg text-sm font-medium transition-colors focus-ring"
+                  >
+                    Edit
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={uanNumber}
+                    onChange={(e) => setUanNumber(e.target.value)}
+                    placeholder="Enter 12-digit UAN"
+                    className="flex-1 px-4 py-2 bg-bg-app border border-border-soft rounded-lg text-sm text-text-hi focus-ring"
+                    maxLength={12}
+                  />
+                  <div className="flex gap-2">
+                    {isEditingUan && uanNumber && (
+                      <button
+                        onClick={() => setIsEditingUan(false)}
+                        className="px-4 py-2 border border-border-soft hover:bg-surface rounded-lg text-sm font-medium transition-colors focus-ring"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      onClick={handleSaveUan}
+                      className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors focus-ring"
+                    >
+                      Submit UAN
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

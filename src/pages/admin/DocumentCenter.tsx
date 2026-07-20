@@ -20,6 +20,9 @@ interface EmployeeDocStatus {
     resume: DocumentStatus
     photo: DocumentStatus
     signature: DocumentStatus
+    sslc: DocumentStatus
+    hsc: DocumentStatus
+    degree: DocumentStatus
   }
 }
 
@@ -29,6 +32,9 @@ const docTypes = [
   { key: 'resume', label: 'RESUME' },
   { key: 'photo', label: 'PHOTO' },
   { key: 'signature', label: 'SIGNATURE' },
+  { key: 'sslc', label: 'SSLC' },
+  { key: 'hsc', label: '12TH/PUC' },
+  { key: 'degree', label: 'DEGREE' },
 ]
 
 export function DocumentCenter() {
@@ -98,6 +104,9 @@ export function DocumentCenter() {
           resume: empDocs?.resume || { uploaded: false },
           photo: empDocs?.photo || { uploaded: false },
           signature: empDocs?.signature || { uploaded: false },
+          sslc: empDocs?.sslc || { uploaded: false },
+          hsc: empDocs?.hsc || { uploaded: false },
+          degree: empDocs?.degree || { uploaded: false },
         }
       }
     })
@@ -156,7 +165,7 @@ export function DocumentCenter() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-text-mid">Loading...</td>
+                <td colSpan={docTypes.length + 1} className="p-8 text-center text-text-mid">Loading...</td>
               </tr>
             ) : (
               filteredEmployees.map((emp) => (

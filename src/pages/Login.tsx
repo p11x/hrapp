@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
-import { User } from 'lucide-react'
+
 
 export function Login() {
   const { signIn, user, isAdmin, loading } = useAuth()
@@ -64,11 +64,11 @@ export function Login() {
       >
         <div className="bg-white border rounded-[16px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6" style={{ borderColor: '#EAEBF3' }}>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
-              <User className="w-5 h-5" />
+            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
+              V
             </div>
             <h1 className="text-2xl font-display font-semibold text-text-hi">
-              HRCore
+              Vepcone Soft Systems
             </h1>
           </div>
 

@@ -5,9 +5,22 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { educationSchema } from '../../lib/validators'
 import type { EducationFormData } from '../../lib/validators'
 import { useAuth } from '../../context/AuthContext'
-import { useEffect } from 'react'
-import { getDatabase } from '../../firebase/config'
+import { useEffect, useState } from 'react'
+import { getDatabase, getStorage } from '../../firebase/config'
 import { hrToast } from '../../components/HRCToast'
+import { FileText } from 'lucide-react'
+
+interface DocumentStatus {
+  uploaded: boolean
+  url?: string
+  filename?: string
+}
+
+const eduDocTypes = [
+  { type: 'sslc', name: 'SSLC Certificate' },
+  { type: 'hsc', name: '12th/PUC Certificate' },
+  { type: 'degree', name: 'Degree Certificate' },
+]
 
 export function Education() {
   const { user } = useAuth()
@@ -20,7 +33,12 @@ export function Education() {
     resolver: zodResolver(educationSchema),
   })
 
+  const [documents, setDocuments] = useState<Record<string, DocumentStatus>>({})
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [loadingDocs, setLoadingDocs] = useState(true)
+
   useEffect(() => {
+    let unsubDocs: (() => void) | null = null
     if (user?.uid) {
       getDatabase().then((db: any) => {
         db.get(`education/${user.uid}`).then((snapshot: any) => {
@@ -29,8 +47,27 @@ export function Education() {
             reset(data)
           }
         })
+        
+        unsubDocs = db.onValue(`Documents/${user.uid}`, (snapshot: any) => {
+          const data = snapshot.val() as Record<string, DocumentStatus> | null
+          if (data) {
+            setDocuments({
+              sslc: data.sslc || { uploaded: false },
+              hsc: data.hsc || { uploaded: false },
+              degree: data.degree || { uploaded: false },
+            })
+          } else {
+            setDocuments({
+              sslc: { uploaded: false },
+              hsc: { uploaded: false },
+              degree: { uploaded: false },
+            })
+          }
+          setLoadingDocs(false)
+        })
       })
     }
+    return () => { if (unsubDocs) unsubDocs() }
   }, [user?.uid, reset])
 
   const onSubmit = async (data: EducationFormData) => {
@@ -41,6 +78,34 @@ export function Education() {
       hrToast.success('Education Saved', 'Education details updated successfully')
     } catch (error) {
       hrToast.error('Save Failed', 'Unable to update education details')
+    }
+  }
+
+  const handleUpload = async (docType: string, file: File) => {
+    if (!user?.uid) return
+    setUploading(docType)
+    try {
+      const db = await getDatabase()
+      const storage = await getStorage()
+      const { ref: storageRef, uploadBytes, getDownloadURL } = await import('firebase/storage')
+      
+      const fileRef = storageRef(storage, `documents/${user.uid}/${docType}/${file.name}`)
+      await uploadBytes(fileRef, file)
+      const downloadUrl = await getDownloadURL(fileRef)
+
+      const newDocData: DocumentStatus = {
+        uploaded: true,
+        url: downloadUrl,
+        filename: file.name,
+      }
+
+      await db.set(`Documents/${user.uid}/${docType}`, newDocData)
+      hrToast.success('Document Uploaded', `${file.name} has been uploaded successfully`)
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      hrToast.error('Upload Failed', 'There was an error uploading your document')
+    } finally {
+      setUploading(null)
     }
   }
 
@@ -186,6 +251,62 @@ export function Education() {
             </button>
           </form>
         </motion.div>
+
+        <div className="mt-8">
+          <h3 className="text-lg font-display font-semibold text-text-hi mb-3">Educational Documents</h3>
+          <div className="bg-surface border border-border-soft rounded-xl overflow-hidden">
+            {loadingDocs ? (
+              <div className="p-8 text-center text-text-mid">Loading...</div>
+            ) : (
+              eduDocTypes.map((doc) => {
+                const docStatus = documents[doc.type] || { uploaded: false }
+                return (
+                  <motion.div
+                    key={doc.type}
+                    className={`flex items-center justify-between p-4 transition-colors ${
+                      docStatus.uploaded ? 'bg-accent-mint/5' : ''
+                    }`}
+                    whileHover={{ x: 2 }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary-dim rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-text-hi font-body font-medium">{doc.name}</div>
+                        <div className={`text-sm ${docStatus.uploaded ? 'text-accent-mint' : 'text-text-mid'}`}>
+                          {docStatus.uploaded ? '✓ Uploaded' : 'Not uploaded'}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      {uploading === doc.type && (
+                        <span className="text-sm text-text-mid mr-2">Uploading...</span>
+                      )}
+                      <label
+                        className={`px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors focus-ring inline-block ${
+                          docStatus.uploaded
+                            ? 'border border-accent-mint text-accent-mint hover:bg-accent-mint/10'
+                            : 'border border-primary text-primary hover:bg-primary-dim'
+                        }`}
+                      >
+                        {docStatus.uploaded ? 'Replace' : 'Upload'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleUpload(doc.type, file)
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </motion.div>
+                )
+              })
+            )}
+          </div>
+        </div>
       </div>
     </PageShell>
   )

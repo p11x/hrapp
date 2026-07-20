@@ -55,11 +55,33 @@ export function EmployeesView() {
     }
   }, [])
 
+  const { todayStr, weekStart, monthStart } = useMemo(() => {
+    let maxDate = ''
+    Object.values(attendance).forEach((days: any) => {
+       Object.keys(days).forEach(dateStr => {
+         if (dateStr > maxDate) maxDate = dateStr
+       })
+    })
+    
+    if (!maxDate) {
+      maxDate = new Date().toISOString().split('T')[0]
+    }
+
+    const d = new Date(maxDate)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
+    const wStart = new Date(d.setDate(diff)).toISOString().split('T')[0]
+    
+    const d2 = new Date(maxDate)
+    const mStart = new Date(d2.getFullYear(), d2.getMonth(), 1).toISOString().split('T')[0]
+    
+    return { todayStr: maxDate, weekStart: wStart, monthStart: mStart }
+  }, [attendance])
+
   const utilisationData = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0]
     let presentCount = 0
     let lateCount = 0
-    let totalCount = employees.length || 7
+    let totalCount = employees.length || 1
 
     Object.entries(attendance).forEach(([_, days]: [string, any]) => {
       if (days && days[todayStr]) {
@@ -74,43 +96,96 @@ export function EmployeesView() {
 
     const working = presentCount + lateCount
     const offline = Math.max(0, totalCount - working)
-    const breakVal = Math.round(working * 0.15) // mock a fraction of working as on break
-
-    // Fallbacks if database has no punches for today (e.g. fresh day or empty)
-    if (working === 0) {
-      return [
-        { name: 'Working', value: Math.round(totalCount * 0.7) },
-        { name: 'Break', value: Math.round(totalCount * 0.1) },
-        { name: 'Offline', value: Math.round(totalCount * 0.2) },
-      ]
-    }
 
     return [
-      { name: 'Working', value: Math.max(0, working - breakVal) },
-      { name: 'Break', value: breakVal },
+      { name: 'Working', value: working },
+      { name: 'Break', value: 0 },
       { name: 'Offline', value: offline },
     ]
-  }, [employees, attendance])
+  }, [employees, attendance, todayStr])
 
-  const utilisationPercentage = useMemo(() => {
-    const total = utilisationData.reduce((acc, curr) => acc + curr.value, 0)
-    if (total === 0) return 70
-    const workingAndBreak = utilisationData.filter(d => d.name === 'Working' || d.name === 'Break').reduce((acc, curr) => acc + curr.value, 0)
-    return Math.round((workingAndBreak / total) * 100)
-  }, [utilisationData])
+  const { todayPercentage, weekPercentage, monthPercentage } = useMemo(() => {
+    const totalEmployees = employees.length || 1
+    
+    const todayWorking = utilisationData.find(d => d.name === 'Working')?.value || 0
+    const tPercentage = Math.round((todayWorking / totalEmployees) * 100)
+
+    let weekWorkingCount = 0
+    let weekTotalCount = 0
+    let monthWorkingCount = 0
+    let monthTotalCount = 0
+
+    Object.entries(attendance).forEach(([_, days]: [string, any]) => {
+      Object.keys(days).forEach(dateStr => {
+         const dStatus = days[dateStr].status
+         const isWorking = dStatus === 'present' || dStatus === 'half-day' || dStatus === 'late'
+         
+         if (dateStr >= monthStart && dateStr <= todayStr) {
+           monthTotalCount++
+           if (isWorking) monthWorkingCount++
+         }
+         if (dateStr >= weekStart && dateStr <= todayStr) {
+           weekTotalCount++
+           if (isWorking) weekWorkingCount++
+         }
+      })
+    })
+    
+    const wPercentage = weekTotalCount === 0 ? 0 : Math.round((weekWorkingCount / weekTotalCount) * 100)
+    const mPercentage = monthTotalCount === 0 ? 0 : Math.round((monthWorkingCount / monthTotalCount) * 100)
+    
+    return {
+      todayPercentage: tPercentage,
+      weekPercentage: wPercentage,
+      monthPercentage: mPercentage
+    }
+  }, [employees, attendance, utilisationData, todayStr, weekStart, monthStart])
+
+  const utilisationPercentage = todayPercentage
 
   const yearlyStatusData = useMemo(() => {
-    const count = employees.length || 7
-    const baseHours = count * 160
-    return [
-      { name: 'Jan', hours: Math.round(baseHours * 0.95), progress: 75 },
-      { name: 'Feb', hours: Math.round(baseHours * 0.9), progress: 68 },
-      { name: 'Mar', hours: Math.round(baseHours * 1.05), progress: 82 },
-      { name: 'Apr', hours: Math.round(baseHours * 0.98), progress: 78 },
-      { name: 'May', hours: Math.round(baseHours * 1.02), progress: 85 },
-      { name: 'Jun', hours: Math.round(baseHours * 1.0), progress: 80 },
-    ]
-  }, [employees])
+    const monthStats: Record<string, { workingDays: number, totalDays: number }> = {}
+    
+    Object.entries(attendance).forEach(([_, days]: [string, any]) => {
+      Object.keys(days).forEach(dateStr => {
+        const monthKey = dateStr.substring(0, 7)
+        if (!monthStats[monthKey]) {
+          monthStats[monthKey] = { workingDays: 0, totalDays: 0 }
+        }
+        
+        monthStats[monthKey].totalDays++
+        const dStatus = days[dateStr].status
+        if (dStatus === 'present' || dStatus === 'half-day' || dStatus === 'late') {
+          monthStats[monthKey].workingDays++
+        }
+      })
+    })
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    
+    const sortedMonths = Object.keys(monthStats).sort()
+    let recentMonths = sortedMonths.slice(-6)
+    
+    if (recentMonths.length === 0) {
+      const d = new Date()
+      return Array.from({length: 6}).map((_, i) => {
+        const date = new Date(d.getFullYear(), d.getMonth() - 5 + i, 1)
+        return { name: monthNames[date.getMonth()], hours: 0, progress: 0 }
+      })
+    }
+
+    return recentMonths.map(monthKey => {
+       const stats = monthStats[monthKey]
+       const progress = stats.totalDays === 0 ? 0 : Math.round((stats.workingDays / stats.totalDays) * 100)
+       const hours = stats.workingDays * 8 
+       const date = new Date(monthKey + "-01")
+       return {
+         name: monthNames[date.getMonth()],
+         hours,
+         progress
+       }
+    })
+  }, [attendance])
 
   const handleCardClick = (employeeId: string) => {
     navigate(`/admin/employee/${employeeId}`)
@@ -171,9 +246,9 @@ export function EmployeesView() {
 
       <div className="space-y-4 mb-6">
         {[
-          { period: 'Today', percentage: utilisationPercentage },
-          { period: 'This Week', percentage: Math.min(100, Math.round(utilisationPercentage * 1.1)) },
-          { period: 'This Month', percentage: Math.min(100, Math.round(utilisationPercentage * 0.95)) },
+          { period: 'Today', percentage: todayPercentage },
+          { period: 'This Week', percentage: weekPercentage },
+          { period: 'This Month', percentage: monthPercentage },
         ].map((item) => (
           <div key={item.period} className="space-y-2">
             <div className="flex justify-between items-center">

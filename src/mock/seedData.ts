@@ -2,7 +2,7 @@ export const seedData = {
   users: {
     'emp-001': {
       id: 'emp-001',
-      email: 'alice@hrcore.dev',
+      email: 'alice@vepcone.dev',
       fullName: 'Alice Chen',
       phone: '+1 555 0001',
       companyName: 'Acme Corp',
@@ -10,7 +10,7 @@ export const seedData = {
     },
     'emp-002': {
       id: 'emp-002',
-      email: 'bob@hrcore.dev',
+      email: 'bob@vepcone.dev',
       fullName: 'Bob Rivera',
       phone: '+1 555 0002',
       companyName: 'Globex',
@@ -18,7 +18,7 @@ export const seedData = {
     },
     'emp-003': {
       id: 'emp-003',
-      email: 'carol@hrcore.dev',
+      email: 'carol@vepcone.dev',
       fullName: 'Carol Kim',
       phone: '+1 555 0003',
       companyName: 'Acme Corp',
@@ -26,7 +26,7 @@ export const seedData = {
     },
     'emp-004': {
       id: 'emp-004',
-      email: 'david@hrcore.dev',
+      email: 'david@vepcone.dev',
       fullName: 'David Park',
       phone: '+1 555 0004',
       companyName: 'Initech',
@@ -34,7 +34,7 @@ export const seedData = {
     },
     'emp-005': {
       id: 'emp-005',
-      email: 'eve@hrcore.dev',
+      email: 'eve@vepcone.dev',
       fullName: 'Eve Martinez',
       phone: '+1 555 0005',
       companyName: 'Acme Corp',
@@ -42,7 +42,7 @@ export const seedData = {
     },
     'emp-006': {
       id: 'emp-006',
-      email: 'frank@hrcore.dev',
+      email: 'frank@vepcone.dev',
       fullName: 'Frank Wilson',
       phone: '+1 555 0006',
       companyName: 'Umbrella Corp',
@@ -561,7 +561,7 @@ export const seedData = {
   },
   messages: {
     'emp-001': {
-      'msg-001': { id: 'msg-001', text: 'Welcome to HRCore!', read: true, createdAt: '2024-01-01' },
+      'msg-001': { id: 'msg-001', text: 'Welcome to Vepcone!', read: true, createdAt: '2024-01-01' },
     },
   },
   presence: {

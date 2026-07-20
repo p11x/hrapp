@@ -14,7 +14,7 @@ let listeners: Listener[] = []
 
 const adminUser: User = {
   uid: 'admin-001',
-  email: 'admin@hrcore.dev',
+  email: 'admin@vepcone.dev',
   emailVerified: true,
   displayName: 'Admin User',
   photoURL: null,
@@ -24,7 +24,7 @@ const adminUser: User = {
 const employeeUsers: Record<string, User> = {
   'emp-001': {
     uid: 'emp-001',
-    email: 'alice@hrcore.dev',
+    email: 'alice@vepcone.dev',
     emailVerified: true,
     displayName: 'Alice Chen',
     photoURL: null,
@@ -32,7 +32,7 @@ const employeeUsers: Record<string, User> = {
   },
   'emp-002': {
     uid: 'emp-002',
-    email: 'bob@hrcore.dev',
+    email: 'bob@vepcone.dev',
     emailVerified: true,
     displayName: 'Bob Rivera',
     photoURL: null,
@@ -40,7 +40,7 @@ const employeeUsers: Record<string, User> = {
   },
   'emp-003': {
     uid: 'emp-003',
-    email: 'carol@hrcore.dev',
+    email: 'carol@vepcone.dev',
     emailVerified: true,
     displayName: 'Carol Kim',
     photoURL: null,
@@ -48,7 +48,7 @@ const employeeUsers: Record<string, User> = {
   },
   'emp-004': {
     uid: 'emp-004',
-    email: 'david@hrcore.dev',
+    email: 'david@vepcone.dev',
     emailVerified: true,
     displayName: 'David Park',
     photoURL: null,
@@ -56,7 +56,7 @@ const employeeUsers: Record<string, User> = {
   },
   'emp-005': {
     uid: 'emp-005',
-    email: 'eve@hrcore.dev',
+    email: 'eve@vepcone.dev',
     emailVerified: true,
     displayName: 'Eve Martinez',
     photoURL: null,
@@ -64,7 +64,7 @@ const employeeUsers: Record<string, User> = {
   },
   'emp-006': {
     uid: 'emp-006',
-    email: 'frank@hrcore.dev',
+    email: 'frank@vepcone.dev',
     emailVerified: true,
     displayName: 'Frank Wilson',
     photoURL: null,
@@ -81,13 +81,13 @@ const employeeUsers: Record<string, User> = {
 }
 
 const validCredentials: Record<string, string> = {
-  'admin@hrcore.dev': 'admin123',
-  'alice@hrcore.dev': 'password',
-  'bob@hrcore.dev': 'password',
-  'carol@hrcore.dev': 'password',
-  'david@hrcore.dev': 'password',
-  'eve@hrcore.dev': 'password',
-  'frank@hrcore.dev': 'password',
+  'admin@vepcone.dev': 'admin123',
+  'alice@vepcone.dev': 'password',
+  'bob@vepcone.dev': 'password',
+  'carol@vepcone.dev': 'password',
+  'david@vepcone.dev': 'password',
+  'eve@vepcone.dev': 'password',
+  'frank@vepcone.dev': 'password',
   'sunny@gmail.com': '123456',
 }
 
@@ -95,7 +95,7 @@ const restoreSession = () => {
   const stored = sessionStorage.getItem('mock-auth-user')
   if (stored) {
     const { email } = JSON.parse(stored)
-    const found = email === 'admin@hrcore.dev' ? adminUser : Object.values(employeeUsers).find(u => u.email === email)
+    const found = email === 'admin@vepcone.dev' ? adminUser : Object.values(employeeUsers).find(u => u.email === email)
     if (found) currentUser = found
   }
 }
@@ -109,7 +109,7 @@ export const mockAuth = {
     if (validCredentials[email] !== password) {
       throw new Error('Firebase: Error (auth/invalid-credential).')
     }
-    const found = email === 'admin@hrcore.dev' ? adminUser : Object.values(employeeUsers).find(u => u.email === email)
+    const found = email === 'admin@vepcone.dev' ? adminUser : Object.values(employeeUsers).find(u => u.email === email)
     currentUser = found ?? null
     sessionStorage.setItem('mock-auth-user', JSON.stringify({ email }))
     listeners.forEach((l) => l(currentUser))

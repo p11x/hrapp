@@ -1,7 +1,10 @@
 import { PageShell } from '../../components/PageShell'
 import { StatusDot } from '../../components/StatusDot'
 import { motion } from 'framer-motion'
-import { Bell } from 'lucide-react'
+import { Bell, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { getDatabase } from '../../firebase/config'
 
 interface Notification {
   id: string
@@ -12,41 +15,122 @@ interface Notification {
 }
 
 export function Notifications() {
-  const notifications: Notification[] = [
-    { id: '1', title: 'Leave Approved', message: 'Your vacation request has been approved', read: false, createdAt: '2024-01-15 09:30' },
-    { id: '2', title: 'Document Uploaded', message: 'January payslip is available', read: true, createdAt: '2024-01-14 14:20' },
-    { id: '3', title: 'Ticket Response', message: 'Support ticket #124 has a new response', read: false, createdAt: '2024-01-12 11:45' },
-  ]
+  const { user } = useAuth()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (notifications.length === 0) {
-    return (
-      <PageShell title="Notifications">
-        <div className="p-4 text-text-mid font-body">
-          No notifications. You're all caught up.
-        </div>
-      </PageShell>
-    )
+  useEffect(() => {
+    if (!user) return
+    let unsubscribe: (() => void) | null = null
+
+    const fetchNotifications = async () => {
+      try {
+        const db = await getDatabase()
+        unsubscribe = db.onValue(`notifications/${user.uid}`, (snapshot: any) => {
+          const data = snapshot.val() as Record<string, Omit<Notification, 'id'>> | null
+          if (data) {
+            const parsed = Object.entries(data).map(([id, val]) => ({
+              id,
+              ...val
+            }))
+            // Sort by createdAt descending
+            parsed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            setNotifications(parsed)
+          } else {
+            setNotifications([])
+          }
+          setLoading(false)
+        })
+      } catch (error) {
+        console.error("Error fetching notifications:", error)
+        setLoading(false)
+      }
+    }
+
+    fetchNotifications()
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [user])
+
+  const markAsRead = async (id: string) => {
+    if (!user) return
+    try {
+      const db = await getDatabase()
+      await db.update(`notifications/${user.uid}/${id}`, { read: true })
+    } catch (error) {
+      console.error("Error marking notification as read:", error)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    if (!user) return
+    try {
+      const db = await getDatabase()
+      const updates: Record<string, any> = {}
+      notifications.forEach(n => {
+        if (!n.read) {
+          updates[`${n.id}/read`] = true
+        }
+      })
+      if (Object.keys(updates).length > 0) {
+        await db.update(`notifications/${user.uid}`, updates)
+      }
+    } catch (error) {
+      console.error("Error marking all as read:", error)
+    }
   }
 
   return (
     <PageShell title="Notifications">
-      <div className="bg-surface border border-border-soft rounded-xl divide-y divide-border-soft">
-        {notifications.map((n) => (
-          <motion.div
-            key={n.id}
-            className={`p-4 flex items-start gap-3 cursor-pointer hover:bg-bg-app transition-colors ${!n.read ? 'border-l-4 border-l-primary' : ''}`}
-            whileHover={{ x: 4 }}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-display font-semibold text-text-hi">Your Notifications</h2>
+        {notifications.length > 0 && notifications.some(n => !n.read) && (
+          <button
+            onClick={markAllAsRead}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary-dim rounded-lg transition-colors focus-ring"
           >
-            <Bell className="w-5 h-5 text-text-mid mt-0.5" />
-            <div className="flex-1">
-              <div className="text-text-hi font-body">{n.title}</div>
-              <div className="text-text-mid text-sm mt-1">{n.message}</div>
-              <div className="text-text-low font-mono text-xs mt-2">{n.createdAt}</div>
-            </div>
-            {!n.read && <StatusDot status="pulse" size="sm" />}
-          </motion.div>
-        ))}
+            <CheckCircle2 className="w-4 h-4" />
+            Mark all as read
+          </button>
+        )}
       </div>
+
+      {loading ? (
+        <div className="p-4 text-text-mid font-body text-center">Loading notifications...</div>
+      ) : notifications.length === 0 ? (
+        <div className="p-4 text-text-mid font-body text-center bg-surface border border-border-soft rounded-xl">
+          No notifications. You're all caught up.
+        </div>
+      ) : (
+        <div className="bg-surface border border-border-soft rounded-xl divide-y divide-border-soft">
+          {notifications.map((n) => (
+            <motion.div
+              key={n.id}
+              onClick={() => !n.read && markAsRead(n.id)}
+              className={`p-4 flex items-start gap-3 transition-colors ${
+                !n.read 
+                  ? 'cursor-pointer hover:bg-bg-app border-l-4 border-l-primary' 
+                  : 'bg-surface opacity-75'
+              }`}
+              whileHover={!n.read ? { x: 4 } : {}}
+            >
+              <div className={`mt-0.5 rounded-full p-2 ${!n.read ? 'bg-primary-dim text-primary' : 'bg-bg-app text-text-mid'}`}>
+                <Bell className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className={`font-body ${!n.read ? 'text-text-hi font-semibold' : 'text-text-mid'}`}>
+                  {n.title}
+                </div>
+                <div className="text-text-mid text-sm mt-1">{n.message}</div>
+                <div className="text-text-low font-mono text-xs mt-2">{n.createdAt}</div>
+              </div>
+              {!n.read && <StatusDot status="pulse" size="sm" />}
+            </motion.div>
+          ))}
+        </div>
+      )}
     </PageShell>
   )
 }

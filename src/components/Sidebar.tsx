@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard,
   Users,
@@ -27,9 +26,9 @@ import {
   Banknote,
   Calendar as CalendarIcon,
   UserPlus,
-  Award,
   Menu,
   X,
+  IdCard,
 } from 'lucide-react'
 
 const adminNavItems = [
@@ -50,6 +49,7 @@ const adminNavItems = [
 
 const employeeNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/employee/dashboard', showDot: true },
+  { icon: IdCard, label: 'Virtual ID', path: '/employee/virtual-id', showDot: false },
   { icon: Bell, label: 'Notifications', path: '/employee/notifications', showDot: true },
   { icon: Gift, label: 'Holidays', path: '/employee/holidays', showDot: false },
   { icon: Users, label: 'Directory', path: '/employee/directory', showDot: false },
@@ -70,33 +70,6 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  
-  const { user } = useAuth()
-  const [empCode, setEmpCode] = useState<string | null>(null)
-  const [companyName, setCompanyName] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (user?.uid && !isAdmin) {
-      let unsub: (() => void) | null = null
-      import('../firebase/config').then(({ getDatabase }) => {
-        getDatabase().then((db: any) => {
-          unsub = db.onValue(`employees/${user.uid}`, (snapshot: any) => {
-            const data = snapshot.val()
-            if (data) {
-              setEmpCode(data.employeeCode || data.employeeId || null)
-              setCompanyName(data.companyName || null)
-            } else {
-              setEmpCode(null)
-              setCompanyName(null)
-            }
-          })
-        })
-      })
-      return () => {
-        if (unsub) unsub()
-      }
-    }
-  }, [user?.uid, isAdmin])
 
   const navItems = isAdmin ? adminNavItems : employeeNavItems
   const sidebarWidth = collapsed ? 'w-20' : 'w-64'
@@ -106,10 +79,10 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
       <aside className={`hidden md:flex fixed left-0 top-0 h-screen ${sidebarWidth} bg-surface border-r border-border-soft flex-col z-40 transition-all duration-300`}>
         <div className="flex items-center justify-between p-4 border-b border-border-soft">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
-              <User className="w-5 h-5" />
+            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
+              V
             </div>
-            {!collapsed && <span className="font-display font-semibold text-text-hi">HRCore</span>}
+            {!collapsed && <span className="font-display font-semibold text-text-hi truncate">Vepcone Soft Systems</span>}
           </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -142,49 +115,6 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
           })}
         </nav>
 
-        {/* Real-time Employee Code Section */}
-        {!isAdmin && empCode && (
-          <div className="border-t border-border-soft p-4 bg-primary-dim/5">
-            {collapsed ? (
-              <div className="flex flex-col items-center justify-center gap-1 group relative">
-                <div className="w-10 h-10 rounded-lg bg-primary-dim flex items-center justify-center text-primary">
-                  <Award className="w-5 h-5 animate-pulse" />
-                </div>
-                <div className="absolute left-16 bg-surface border border-border-soft p-3 rounded-lg shadow-lg hidden group-hover:block z-50 w-48 pointer-events-none">
-                  <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-primary mb-1">
-                    Employee Code
-                  </span>
-                  <div className="font-mono text-sm font-bold text-text-hi mb-1">
-                    {empCode}
-                  </div>
-                  <div className="text-[10px] text-text-mid font-body">
-                    Company: <span className="font-medium text-text-hi">{companyName || 'Acme Corp'}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-primary-dim/20 border border-primary/20 rounded-xl"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-4 h-4 text-primary" />
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary">
-                    Employee Code
-                  </span>
-                </div>
-                <div className="font-mono text-lg font-bold text-text-hi tracking-wider mb-1.5">
-                  {empCode}
-                </div>
-                <div className="text-xs text-text-mid font-body">
-                  Company: <span className="font-semibold text-text-hi">{companyName || 'Acme Corp'}</span>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        )}
-
         <div className="p-4 border-t border-border-soft">
           <button
             onClick={onSignOut}
@@ -198,10 +128,10 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
 
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface border-b border-border-soft z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
-            <User className="w-5 h-5" />
+          <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
+            V
           </div>
-          <span className="font-display font-semibold text-text-hi">HRCore</span>
+          <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">Vepcone Soft Systems</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(true)}
@@ -230,10 +160,10 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
             >
               <div className="flex items-center justify-between p-4 border-b border-border-soft">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
-                    <User className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
+                    V
                   </div>
-                  <span className="font-display font-semibold text-text-hi">HRCore</span>
+                  <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">Vepcone Soft Systems</span>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}

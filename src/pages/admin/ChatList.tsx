@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Send, Plus, Search } from 'lucide-react'
 import { getDatabase } from '../../firebase/config'
 import { hrToast } from '../../components/HRCToast'
+import { useAuth } from '../../context/AuthContext'
 
 interface Message {
   id: string
@@ -24,6 +25,9 @@ interface Employee {
 }
 
 export function ChatList() {
+  const { user } = useAuth()
+  const userId = user?.uid || 'admin-001'
+  
   const [activeThread, setActiveThread] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
@@ -38,22 +42,25 @@ export function ChatList() {
       unsubChat = db.onValue('messages_Chat', (snapshot: any) => {
         const data = snapshot.val() as Record<string, { id: string; participants: string[]; messages: Message[] }> | undefined
         if (data) {
-          setThreads(Object.entries(data).map(([id, t]) => ({ 
-            ...t, 
-            id,
-            messages: t.messages || []
-          })))
+          const myThreads = Object.entries(data)
+            .filter(([_, t]) => (t as Thread).participants?.includes(userId))
+            .map(([id, t]) => ({ 
+              ...t, 
+              id,
+              messages: t.messages || []
+            }))
+          setThreads(myThreads)
         } else {
           setThreads([])
         }
       })
 
-      unsubEmp = db.onValue('employees', (snapshot: any) => {
-        const data = snapshot.val() as Record<string, { name: string }> | undefined
+      unsubEmp = db.onValue('users', (snapshot: any) => {
+        const data = snapshot.val() as Record<string, { fullName?: string, name?: string }> | undefined
         if (data) {
           const formatted: Record<string, Employee> = {}
           Object.entries(data).forEach(([id, emp]) => {
-            formatted[id] = { id, name: (emp as { name: string }).name }
+            formatted[id] = { id, name: emp.fullName || emp.name || 'Unknown User' }
           })
           setEmployees(formatted)
         } else {
@@ -66,10 +73,10 @@ export function ChatList() {
       if (unsubChat) unsubChat()
       if (unsubEmp) unsubEmp()
     }
-  }, [])
+  }, [userId])
 
   const getThreadName = (thread: Thread) => {
-    const otherParticipants = thread.participants.filter(p => p !== 'admin-001')
+    const otherParticipants = thread.participants.filter(p => p !== userId)
     if (otherParticipants.length > 0) {
       const names = otherParticipants.map(p => employees[p]?.name || p).join(', ')
       return names
@@ -78,7 +85,7 @@ export function ChatList() {
   }
 
   const getThreadAvatar = (thread: Thread) => {
-    const otherParticipants = thread.participants.filter(p => p !== 'admin-001')
+    const otherParticipants = thread.participants.filter(p => p !== userId)
     if (otherParticipants.length > 0) {
       return otherParticipants.map(p => employees[p]?.name?.split(' ').map((n: string) => n[0]).join('') || '?').join('')
     }
@@ -108,7 +115,7 @@ export function ChatList() {
       const existing = thread.messages || []
       const newMsg: Message = {
         id: `msg-${Date.now()}`,
-        sender: 'admin-001',
+        sender: userId,
         text: newMessage,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
@@ -119,15 +126,15 @@ export function ChatList() {
   }
 
   const getOrCreateThread = (otherUserId: string) => {
-    const sortedIds = ['admin-001', otherUserId].sort()
+    const sortedIds = [userId, otherUserId].sort()
     const threadId = `thread-${sortedIds.join('-')}`
-    let thread = threads.find(t => t.participants.includes(otherUserId) && t.participants.includes('admin-001'))
+    let thread = threads.find(t => t.participants.includes(otherUserId) && t.participants.includes(userId))
     if (!thread) {
       const createThread = async () => {
         const db = await getDatabase()
         const newThread: Thread = {
           id: threadId,
-          participants: ['admin-001', otherUserId],
+          participants: [userId, otherUserId],
           messages: [],
         }
         await db.set(`messages_Chat/${threadId}`, newThread)
@@ -141,7 +148,7 @@ export function ChatList() {
   }
 
   const filteredEmployees = Object.entries(employees).filter(([id, emp]) =>
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) && id !== 'admin-001'
+    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) && id !== userId
   )
 
   return (
@@ -206,16 +213,16 @@ export function ChatList() {
                 {selectedThread.messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender === 'admin-001' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`max-w-[70%] p-3 rounded-lg ${
-                      msg.sender === 'admin-001'
+                      msg.sender === userId
                         ? 'bg-primary text-white'
                         : 'bg-bg-app border border-border-soft'
                     }`}>
                       <div className="text-sm font-body">{msg.text}</div>
                       <div className={`text-xs mt-1 ${
-                        msg.sender === 'admin-001' ? 'text-white/70' : 'text-text-low'
+                        msg.sender === userId ? 'text-white/70' : 'text-text-low'
                       }`}>{msg.timestamp}</div>
                     </div>
                   </div>

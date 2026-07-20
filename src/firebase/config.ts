@@ -1,5 +1,5 @@
 import { initializeApp, getApps, deleteApp } from 'firebase/app'
-import { getAuth as fbGetAuth } from 'firebase/auth'
+import { getAuth as fbGetAuth, setPersistence, browserSessionPersistence } from 'firebase/auth'
 import { getDatabase as fbGetDatabase, ref, onValue, get, set, remove, update } from 'firebase/database'
 import { getStorage as fbGetStorage } from 'firebase/storage'
 
@@ -85,6 +85,7 @@ export async function getAuth() {
   const app = await getFirebaseApp()
   if (app) {
     _auth = fbGetAuth(app)
+    await setPersistence(_auth, browserSessionPersistence)
   } else {
     _auth = (await import('../mock/mockAuth')).mockAuth
   }

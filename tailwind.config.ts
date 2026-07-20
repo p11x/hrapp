@@ -23,6 +23,7 @@ export default {
           app: '#F5F6FB',
           surface: '#FFFFFF',
         },
+        surface: '#FFFFFF',
         border: {
           soft: '#EAEBF3',
         },

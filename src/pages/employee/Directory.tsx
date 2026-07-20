@@ -26,7 +26,7 @@ export function Directory() {
             return {
               id,
               name,
-              role: emp.position || emp.role || 'Staff'
+              role: emp.position || emp.role || 'Employee'
             }
           })
           setEmployees(loaded)

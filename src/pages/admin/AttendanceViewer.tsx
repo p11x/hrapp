@@ -104,7 +104,7 @@ export function AttendanceViewer() {
             id,
             name: emp.name || emp.fullName || 'Unnamed Employee',
             companyName: emp.companyName || emp.department || 'Acme Corp',
-            position: emp.position || 'Staff',
+            position: emp.position || 'Employee',
             avatar: (emp.name || emp.fullName || 'EE').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
           }))
           setEmployees(loaded)
@@ -190,6 +190,48 @@ export function AttendanceViewer() {
       emp.position.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [employees, searchQuery])
+
+  const handleAttendanceRegularisation = async () => {
+    try {
+      const db = await getDatabase()
+      
+      // Find the latest date in the attendance DB to represent "Today"
+      let today = ''
+      Object.values(attendanceDb).forEach((empRecord) => {
+        if (empRecord && typeof empRecord === 'object') {
+          Object.keys(empRecord).forEach(date => {
+            if (date > today) today = date
+          })
+        }
+      })
+
+      if (!today) {
+        hrToast.error('Regularisation Failed', 'No recent attendance records found to regularise')
+        return
+      }
+
+      const updates: any = {}
+      let count = 0
+
+      employees.forEach(emp => {
+        const empAttendance = attendanceDb[emp.id] || {}
+        const todayRecord = empAttendance[today]
+        if (todayRecord && (todayRecord.status === 'present' || todayRecord.status === 'late' || todayRecord.status === 'half-day') && !todayRecord.clockOut) {
+          updates[`attendance/${emp.id}/${today}/clockOut`] = '18:00'
+          count++
+        }
+      })
+      
+      if (count > 0) {
+        await db.update(updates)
+        hrToast.success('Regularisation Complete', `Punched out ${count} employees for ${today} at 18:00`)
+      } else {
+        hrToast.success('Regularisation Complete', `All active employees are already punched out for ${today}.`)
+      }
+    } catch (e: any) {
+      hrToast.error('Regularisation Failed', e.message)
+    }
+  }
 
   // Month navigation helpers
   const handlePrevMonth = () => {
@@ -352,16 +394,26 @@ export function AttendanceViewer() {
           </select>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full xl:w-80">
-          <Search className="w-4 h-4 text-text-low absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search employee, company..."
-            className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border-soft rounded-lg text-sm focus-ring text-text-hi"
-          />
+        {/* Actions & Search Input */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <button
+            onClick={handleAttendanceRegularisation}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors focus-ring w-full sm:w-auto justify-center"
+          >
+            <Clock className="w-4 h-4" />
+            Regularise Attendance
+          </button>
+          
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-text-low absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search employee, company..."
+              className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border-soft rounded-lg text-sm focus-ring text-text-hi"
+            />
+          </div>
         </div>
       </div>
 

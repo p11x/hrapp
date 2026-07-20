@@ -22,7 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       const auth = await getAuth()
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+      
+      const handleAuthChange = async (firebaseUser: User | null) => {
         setLoading(true)
         setUser(firebaseUser)
         if (firebaseUser) {
@@ -37,7 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // First verify the user exists in our DB, if not they were deleted
               const snap = await db.get(`users/${firebaseUser.uid}`)
               if (!snap.exists()) {
-                await signOut(auth)
+                if ((auth as any).signOut) {
+                  await (auth as any).signOut()
+                } else {
+                  await signOut(auth)
+                }
                 return
               }
               const roleSnap = await db.get(`users/${firebaseUser.uid}/role`)
@@ -55,7 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(false)
         }
         setLoading(false)
-      })
+      }
+
+      let unsubscribe: () => void
+      if ((auth as any).onAuthStateChanged) {
+        unsubscribe = (auth as any).onAuthStateChanged(handleAuthChange)
+      } else {
+        unsubscribe = onAuthStateChanged(auth, handleAuthChange)
+      }
+      
       return () => unsubscribe()
     }
     initAuth()
@@ -63,7 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const auth = await getAuth()
-    const cred = await signInWithEmailAndPassword(auth, email, password)
+    let cred: any
+    if ((auth as any).signInWithEmailAndPassword) {
+      const mockUser = await (auth as any).signInWithEmailAndPassword(email, password)
+      cred = { user: mockUser }
+    } else {
+      cred = await signInWithEmailAndPassword(auth, email, password)
+    }
     
     try {
       const token = await cred.user.getIdTokenResult(true)
@@ -83,8 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOutUser = async () => {
-    const auth = await getAuth()
-    await signOut(auth)
+    try {
+      const auth = await getAuth()
+      if ((auth as any).signOut) {
+        await (auth as any).signOut()
+      } else {
+        await signOut(auth)
+      }
+    } catch (e) {
+      console.error('Sign out error:', e)
+    } finally {
+      sessionStorage.clear()
+      localStorage.clear()
+    }
   }
 
   return (

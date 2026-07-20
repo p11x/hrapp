@@ -1,16 +1,17 @@
 import { PageShell } from '../../components/PageShell'
 import { motion } from 'framer-motion'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { getDatabase } from '../../firebase/config'
 import { hrToast } from '../../components/HRCToast'
 import { useAuth } from '../../context/AuthContext'
 
 const recentActivity = [
-  { icon: '📅', label: 'Punch In', time: '09:12 AM' },
-  { icon: '⏱', label: 'Break Start', time: '01:30 PM' },
+  { icon: '📅', label: 'Punch In', time: '09:00 AM' },
+  { icon: '⏱', label: 'Break Start', time: '01:00 PM' },
   { icon: '▶', label: 'Break End', time: '02:00 PM' },
+  { icon: '▶', label: 'Punch Out', time: '07:00 PM' },
 ]
 
 export function Attendance() {
@@ -19,6 +20,7 @@ export function Attendance() {
   const [punchState, setPunchState] = useState<'in' | 'out'>('out')
   const [activity, setActivity] = useState(recentActivity)
   const [attendance, setAttendance] = useState<Record<string, any>>({})
+  const [weekOffset, setWeekOffset] = useState(0)
 
   useEffect(() => {
     let unsubAll: (() => void) | null = null
@@ -54,67 +56,91 @@ export function Attendance() {
 
   const handlePunch = async () => {
     if (!user?.uid) return
+
+    const now = new Date()
+    const hours = now.getHours()
+
     const db = await getDatabase()
-    const today = new Date().toISOString().split('T')[0]
+    const today = now.toISOString().split('T')[0]
     
     if (punchState === 'out') {
+      if (hours < 9) {
+        hrToast.error('Not Allowed', 'Punch in is only allowed from 9:00 AM onwards')
+        return
+      }
+
       await (db as any).set(`attendance/${userId}/${today}`, {
-        checkInTime: new Date().toLocaleTimeString(),
+        checkInTime: now.toLocaleTimeString(),
         status: 'present'
       })
       setPunchState('in')
-      setActivity([{ icon: '📅', label: 'Punch In', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...activity])
+      setActivity([{ icon: '📅', label: 'Punch In', time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...activity])
       hrToast.success('Punch In', 'Successfully punched in')
     } else {
-      await (db as any).set(`attendance/${userId}/${today}/checkOutTime`, new Date().toLocaleTimeString())
+      if (hours >= 19) {
+        hrToast.error('Not Allowed', 'Punch out is only allowed before 7:00 PM')
+        return
+      }
+
+      await (db as any).set(`attendance/${userId}/${today}/checkOutTime`, now.toLocaleTimeString())
       setPunchState('out')
-      setActivity([{ icon: '▶', label: 'Punch Out', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...activity])
+      setActivity([{ icon: '▶', label: 'Punch Out', time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...activity])
       hrToast.success('Punch Out', 'Successfully punched out')
     }
   }
 
-  const yearlyData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const monthStats = months.map((monthName) => ({
-      name: monthName,
-      hours: 0,
-      progress: 0,
-    }))
+  const weeklyData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const today = new Date()
+    const currentDayOfWeek = today.getDay()
+    const distanceToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
+    
+    const startOfWeek = new Date(today)
+    startOfWeek.setDate(today.getDate() - distanceToMonday - (weekOffset * 7))
+    startOfWeek.setHours(0, 0, 0, 0)
+    
+    const weekStats = days.map((dayName, index) => {
+      const date = new Date(startOfWeek)
+      date.setDate(startOfWeek.getDate() + index)
+      const dateString = date.toISOString().split('T')[0]
+      return {
+        name: dayName,
+        date: dateString,
+        hours: 0,
+        progress: 0,
+      }
+    })
 
-    let hasData = false
+    const hasAnyData = Object.keys(attendance).length > 0
+    if (!hasAnyData) {
+      return [
+        { name: 'Mon', hours: 8, progress: 100 },
+        { name: 'Tue', hours: 8, progress: 100 },
+        { name: 'Wed', hours: 4, progress: 50 },
+        { name: 'Thu', hours: 8, progress: 100 },
+        { name: 'Fri', hours: 8, progress: 100 },
+        { name: 'Sat', hours: 0, progress: 0 },
+        { name: 'Sun', hours: 0, progress: 0 },
+      ]
+    }
+
     Object.entries(attendance).forEach(([dateStr, record]: [string, any]) => {
-      const parts = dateStr.split('-')
-      if (parts.length === 3) {
-        const monthIndex = parseInt(parts[1], 10) - 1
-        if (monthIndex >= 0 && monthIndex < 12) {
-          hasData = true
-          if (record.status === 'present' || record.status === 'late') {
-            monthStats[monthIndex].hours += 8
-          } else if (record.status === 'half-day') {
-            monthStats[monthIndex].hours += 4
-          }
+      const dayStat = weekStats.find(d => d.date === dateStr)
+      if (dayStat) {
+        if (record.status === 'present' || record.status === 'late') {
+          dayStat.hours += 8
+        } else if (record.status === 'half-day') {
+          dayStat.hours += 4
         }
       }
     })
 
-    monthStats.forEach((m) => {
-      m.progress = Math.min(100, Math.round((m.hours / 160) * 100))
+    weekStats.forEach((d) => {
+      d.progress = Math.min(100, Math.round((d.hours / 8) * 100))
     })
 
-    if (!hasData) {
-      return [
-        { name: 'Jan', hours: 160, progress: 85 },
-        { name: 'Feb', hours: 145, progress: 78 },
-        { name: 'Mar', hours: 180, progress: 92 },
-        { name: 'Apr', hours: 155, progress: 82 },
-        { name: 'May', hours: 170, progress: 88 },
-        { name: 'Jun', hours: 165, progress: 85 },
-      ]
-    }
-
-    const currentMonthIndex = new Date().getMonth()
-    return monthStats.slice(0, Math.max(6, currentMonthIndex + 1))
-  }, [attendance])
+    return weekStats
+  }, [attendance, weekOffset])
 
   const progressData = useMemo(() => {
     const today = new Date()
@@ -228,10 +254,30 @@ export function Attendance() {
           className="bg-bg-surface border border-border-soft rounded-xl p-6"
           whileHover={{ y: -2 }}
         >
-          <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Yearly Status</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-display font-semibold text-text-hi">Weekly Status</h3>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setWeekOffset(w => w + 1)}
+                className="p-1 rounded hover:bg-bg-app transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-text-mid" />
+              </button>
+              <span className="text-sm font-medium text-text-hi min-w-[85px] text-center">
+                {weekOffset === 0 ? 'This Week' : weekOffset === 1 ? 'Last Week' : `${weekOffset} Weeks Ago`}
+              </span>
+              <button 
+                onClick={() => setWeekOffset(w => Math.max(0, w - 1))}
+                disabled={weekOffset === 0}
+                className={`p-1 rounded transition-colors ${weekOffset === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-bg-app'}`}
+              >
+                <ChevronRight className="w-5 h-5 text-text-mid" />
+              </button>
+            </div>
+          </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={yearlyData}>
+              <ComposedChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#EAEBF3" />
                 <XAxis dataKey="name" stroke="#A0A3B1" fontSize={12} />
                 <YAxis yAxisId="left" stroke="#A0A3B1" fontSize={12} />

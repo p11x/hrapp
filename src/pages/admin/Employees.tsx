@@ -36,7 +36,7 @@ export function Employees() {
               id,
               name,
               avatar: name.split(' ').map((n: string) => n ? n[0] : '').join('').slice(0, 2).toUpperCase() || 'E',
-              role: emp.position || emp.role || 'Staff',
+              role: emp.position || emp.role || 'Employee',
               companyName: emp.companyName || emp.department || 'Acme Corp',
               email: emp.email || '',
               phone: emp.phone || '',

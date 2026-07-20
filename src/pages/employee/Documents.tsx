@@ -266,6 +266,30 @@ export function Documents() {
             </motion.div>
           </div>
         </div>
+        <div>
+          <h3 className="text-lg font-display font-semibold text-text-hi mb-3">Provident Fund</h3>
+          <div className="bg-surface border border-border-soft rounded-xl overflow-hidden p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-dim rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-text-hi font-body font-medium">UAN Number Generation</div>
+                  <div className="text-sm text-text-mid">
+                    Generate your Universal Account Number
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => window.open('https://unifiedportal-mem.epfindia.gov.in/memberinterface/', '_blank')}
+                className="px-4 py-1.5 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors focus-ring"
+              >
+                Generate
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </PageShell>
   )

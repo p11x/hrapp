@@ -2,7 +2,7 @@ import { PageShell } from '../../components/PageShell'
 import { motion } from 'framer-motion'
 import { ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Phone } from 'lucide-react'
+import { Mail, Phone, Search } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { getDatabase } from '../../firebase/config'
 
@@ -24,6 +24,7 @@ export function EmployeesView() {
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendance, setAttendance] = useState<Record<string, any>>({})
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null
@@ -191,6 +192,14 @@ export function EmployeesView() {
     navigate(`/admin/employee/${employeeId}`)
   }
 
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => 
+      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.companyName.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [employees, searchQuery])
+
   return (
     <PageShell title="Employees View">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -289,9 +298,21 @@ export function EmployeesView() {
       </div>
 
       <div>
-        <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Employees</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-display font-semibold text-text-hi">Employees</h3>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-text-low absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search employees..."
+              className="w-full pl-9 pr-4 py-2 bg-bg-surface border border-border-soft rounded-lg text-sm focus-ring text-text-hi"
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-96 overflow-y-auto pr-2">
-          {employees.map((emp) => (
+          {filteredEmployees.map((emp) => (
             <motion.div
               key={emp.id}
               className="bg-bg-surface border border-border-soft rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"

@@ -116,19 +116,6 @@ export function Attendance() {
       }
     })
 
-    const hasAnyData = Object.keys(attendance).length > 0
-    if (!hasAnyData) {
-      return [
-        { name: 'Mon', hours: 8, progress: 100 },
-        { name: 'Tue', hours: 8, progress: 100 },
-        { name: 'Wed', hours: 4, progress: 50 },
-        { name: 'Thu', hours: 8, progress: 100 },
-        { name: 'Fri', hours: 8, progress: 100 },
-        { name: 'Sat', hours: 0, progress: 0 },
-        { name: 'Sun', hours: 0, progress: 0 },
-      ]
-    }
-
     Object.entries(attendance).forEach(([dateStr, record]: [string, any]) => {
       const dayStat = weekStats.find(d => d.date === dateStr)
       if (dayStat) {
@@ -153,34 +140,66 @@ export function Attendance() {
     const currentMonth = today.getMonth()
 
     let daysInMonth = 0
-    let presentDays = 0
+    let presentDaysInMonth = 0
+
+    const currentDayOfWeek = today.getDay()
+    const distanceToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1
+    const startOfThisWeek = new Date(today)
+    startOfThisWeek.setDate(today.getDate() - distanceToMonday)
+    startOfThisWeek.setHours(0, 0, 0, 0)
+    
+    let daysInWeek = 0
+    let presentDaysInWeek = 0
 
     for (let d = 1; d <= today.getDate(); d++) {
-      const dayOfWeek = new Date(currentYear, currentMonth, d).getDay()
+      const date = new Date(currentYear, currentMonth, d)
+      const dayOfWeek = date.getDay()
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         daysInMonth++
       }
+    }
+    
+    for (let i = 0; i <= distanceToMonday; i++) {
+        const d = new Date(startOfThisWeek)
+        d.setDate(startOfThisWeek.getDate() + i)
+        if (d.getDay() !== 0 && d.getDay() !== 6) {
+           daysInWeek++
+        }
     }
 
     Object.entries(attendance).forEach(([dateStr, record]: [string, any]) => {
       const parts = dateStr.split('-').map(Number)
       if (parts[0] === currentYear && parts[1] === (currentMonth + 1)) {
         if (record.status === 'present' || record.status === 'late' || record.status === 'half-day') {
-          presentDays++
+          presentDaysInMonth++
         }
+      }
+      
+      const recordDate = new Date(parts[0], parts[1] - 1, parts[2])
+      if (recordDate >= startOfThisWeek && recordDate <= today) {
+          if (record.status === 'present' || record.status === 'late' || record.status === 'half-day') {
+              presentDaysInWeek++
+          }
       }
     })
 
-    const monthPercent = daysInMonth > 0 ? Math.min(100, Math.round((presentDays / daysInMonth) * 100)) : 0
-
-    const finalMonth = monthPercent || 85
-    const finalWeek = punchState === 'in' ? 100 : 80
-    const finalToday = punchState === 'in' ? 100 : 0
+    const monthPercent = daysInMonth > 0 ? Math.min(100, Math.round((presentDaysInMonth / daysInMonth) * 100)) : 0
+    const weekPercent = daysInWeek > 0 ? Math.min(100, Math.round((presentDaysInWeek / daysInWeek) * 100)) : 0
+    
+    const todayStr = today.toISOString().split('T')[0]
+    const todayRecord = attendance[todayStr]
+    
+    let todayPercent = 0
+    if (punchState === 'in') {
+      todayPercent = 100
+    } else if (todayRecord && (todayRecord.status === 'present' || todayRecord.status === 'late' || todayRecord.status === 'half-day')) {
+      todayPercent = 100
+    }
 
     return [
-      { period: 'Today', percentage: finalToday },
-      { period: 'This Week', percentage: finalWeek },
-      { period: 'This Month', percentage: finalMonth },
+      { period: 'Today', percentage: todayPercent },
+      { period: 'This Week', percentage: weekPercent },
+      { period: 'This Month', percentage: monthPercent },
     ]
   }, [attendance, punchState])
 

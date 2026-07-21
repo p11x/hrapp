@@ -87,6 +87,9 @@ export function EmployeeProfile() {
   const [offerLetter, setOfferLetter] = useState<OfferLetter | null>(null)
   const [payslips, setPayslips] = useState<Payslip[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editData, setEditData] = useState<Partial<EmployeeProfileData>>({})
+  const [updating, setUpdating] = useState(false)
   const offerFileRef = useRef<HTMLInputElement>(null)
   const payslipFileRef = useRef<HTMLInputElement>(null)
 
@@ -159,6 +162,45 @@ export function EmployeeProfile() {
 
     fetchData()
   }, [employeeId])
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!employeeId) return
+    setUpdating(true)
+    try {
+      const db = await getDatabase()
+      
+      const userUpdates: Record<string, any> = {
+        fullName: editData.name,
+        phone: editData.phone || '',
+        whatsapp: editData.whatsapp || '',
+        dob: editData.dob || '',
+        gender: editData.gender || '',
+        address: editData.address || '',
+        employeeCode: editData.employeeCode || '',
+        position: editData.position || ''
+      }
+      
+      const empUpdates: Record<string, any> = {
+        name: editData.name,
+        position: editData.position || '',
+        employeeCode: editData.employeeCode || '',
+        uanNumber: editData.uanNumber || ''
+      }
+      
+      await (db as any).update(`users/${employeeId}`, userUpdates)
+      await (db as any).update(`employees/${employeeId}`, empUpdates)
+      
+      setProfile(prev => ({ ...prev!, ...editData }))
+      setShowEditModal(false)
+      hrToast.success('Updated', 'Employee profile updated successfully')
+    } catch (error) {
+      console.error(error)
+      hrToast.error('Error', 'Failed to update profile')
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   const handleSendOffer = async () => {
     offerFileRef.current?.click()
@@ -321,6 +363,124 @@ export function EmployeeProfile() {
 
   return (
     <PageShell title={profile.name}>
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-bg-surface border border-border-soft rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-display font-semibold text-text-hi">Edit Profile</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-text-low hover:text-text-hi">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Full Name</label>
+                  <input
+                    required
+                    value={editData.name || ''}
+                    onChange={(e) => setEditData({...editData, name: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Email (Read Only)</label>
+                  <input
+                    disabled
+                    value={editData.email || ''}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-low bg-bg-app text-sm cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Employee Code</label>
+                  <input
+                    value={editData.employeeCode || ''}
+                    onChange={(e) => setEditData({...editData, employeeCode: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Role / Position</label>
+                  <input
+                    value={editData.position || ''}
+                    onChange={(e) => setEditData({...editData, position: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Phone</label>
+                  <input
+                    value={editData.phone || ''}
+                    onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">WhatsApp</label>
+                  <input
+                    value={editData.whatsapp || ''}
+                    onChange={(e) => setEditData({...editData, whatsapp: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">DOB</label>
+                  <input
+                    type="date"
+                    value={editData.dob || ''}
+                    onChange={(e) => setEditData({...editData, dob: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-text-mid mb-1">Gender</label>
+                  <select
+                    value={editData.gender || ''}
+                    onChange={(e) => setEditData({...editData, gender: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  >
+                    <option value="">Select...</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-text-mid mb-1">Address</label>
+                  <input
+                    value={editData.address || ''}
+                    onChange={(e) => setEditData({...editData, address: e.target.value})}
+                    className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border border-border-soft rounded font-medium text-text-mid hover:text-text-hi transition-colors focus-ring"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="px-4 py-2 bg-primary text-white rounded font-medium hover:bg-primary-dim transition-colors focus-ring disabled:opacity-50"
+                >
+                  {updating ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <motion.div
@@ -402,7 +562,18 @@ export function EmployeeProfile() {
           className="bg-bg-surface border border-border-soft rounded-xl p-6"
           whileHover={{ y: -2 }}
         >
-          <h3 className="text-lg font-display font-semibold text-text-hi mb-4">Personal Details</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-display font-semibold text-text-hi">Personal Details</h3>
+            <button
+              onClick={() => {
+                setEditData(profile)
+                setShowEditModal(true)
+              }}
+              className="text-sm font-medium text-primary hover:text-primary-dim transition-colors"
+            >
+              Edit
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { icon: User, label: 'Full Name', value: profile.name },

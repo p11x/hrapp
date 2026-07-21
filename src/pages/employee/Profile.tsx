@@ -180,7 +180,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-text-mid mb-1.5 uppercase tracking-wider">
-                WHATSAPP NUMBER
+                WHATSAPP NUMBER <span className="text-accent-coral">*</span>
               </label>
               <input
                 {...register('whatsapp')}
@@ -209,7 +209,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-text-mid mb-1.5 uppercase tracking-wider">
-                DATE OF BIRTH
+                DATE OF BIRTH <span className="text-accent-coral">*</span>
               </label>
               <div className="relative">
                 <input
@@ -226,7 +226,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-text-mid mb-1.5 uppercase tracking-wider">
-                ADDRESS
+                ADDRESS <span className="text-accent-coral">*</span>
               </label>
               <textarea
                 {...register('address')}
@@ -241,7 +241,7 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-text-mid mb-2 uppercase tracking-wider">
-                GENDER
+                GENDER <span className="text-accent-coral">*</span>
               </label>
               <div className="flex gap-2">
                 {(['Male', 'Female', 'Other'] as const).map((g) => (

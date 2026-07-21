@@ -1,6 +1,6 @@
 import { PageShell } from '../../components/PageShell'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Plus, Check, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,10 +10,24 @@ import { hrToast } from '../../components/HRCToast'
 const addEmployeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  companyName: z.string().min(1, 'Company Name is required'),
+  companySelection: z.enum(['Vepcon Soft Systems', 'Others']),
+  customCompanyName: z.string().optional(),
   position: z.string().min(1, 'Position / Job Title is required'),
   role: z.enum(['employee', 'admin']),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+}).refine(data => {
+  if (data.companySelection === 'Others' && (!data.customCompanyName || data.customCompanyName.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Company Name is required',
+  path: ['customCompanyName']
 })
 
 type AddEmployeeFormData = z.infer<typeof addEmployeeSchema>
@@ -28,16 +42,29 @@ export function AddEmployee() {
     formState: { errors },
   } = useForm<AddEmployeeFormData>({
     resolver: zodResolver(addEmployeeSchema),
-    defaultValues: { role: 'employee', companyName: 'Vepcon Soft Systems' },
+    defaultValues: { role: 'employee', companySelection: 'Vepcon Soft Systems', customCompanyName: '' },
   })
 
   const selectedRole = watch('role', 'employee')
+  const companySelection = watch('companySelection', 'Vepcon Soft Systems')
+  const passwordValue = watch('password') || ''
+
+  const passwordRules = [
+    { label: 'At least 8 characters', met: passwordValue.length >= 8 },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(passwordValue) },
+    { label: 'One lowercase letter', met: /[a-z]/.test(passwordValue) },
+    { label: 'One number', met: /[0-9]/.test(passwordValue) },
+    { label: 'One special character', met: /[^A-Za-z0-9]/.test(passwordValue) }
+  ]
+  const isPasswordDirty = passwordValue.length > 0;
 
   const onSubmit = async (data: AddEmployeeFormData) => {
     setLoading(true)
     try {
       const apiKey = import.meta.env.VITE_FIREBASE_API_KEY
       if (!apiKey) throw new Error('Missing Firebase API Key')
+      
+      const finalCompanyName = data.companySelection === 'Others' ? data.customCompanyName : data.companySelection;
       
       // Use Identity Toolkit REST API to create user without affecting current auth state
       const signUpRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, {
@@ -65,7 +92,7 @@ export function AddEmployee() {
         id: uid,
         email: data.email,
         fullName: data.name,
-        companyName: data.companyName,
+        companyName: finalCompanyName,
         position: data.position,
         role: data.role
       })
@@ -73,7 +100,7 @@ export function AddEmployee() {
       // The admin writes to the company employee directory
       await (primaryDb as any).set(`employees/${uid}`, {
         name: data.name,
-        companyName: data.companyName,
+        companyName: finalCompanyName,
         position: data.position,
         role: data.role,
       })
@@ -128,14 +155,26 @@ export function AddEmployee() {
               <label className="block text-sm font-medium text-text-mid mb-1.5 uppercase tracking-wider">
                 COMPANY NAME <span className="text-accent-coral">*</span>
               </label>
-              <input
-                {...register('companyName')}
-                readOnly
-                className="w-full px-3 py-2 bg-bg-surface border border-border-soft rounded text-text-mid cursor-not-allowed focus:outline-none focus:border-primary transition-colors focus-ring"
-                placeholder="Enter company name"
-              />
-              {errors.companyName && (
-                <p className="text-accent-coral text-sm mt-1">{errors.companyName.message}</p>
+              <select
+                {...register('companySelection')}
+                className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring mb-3"
+              >
+                <option value="Vepcon Soft Systems">Vepcon Soft Systems</option>
+                <option value="Others">Others</option>
+              </select>
+              {errors.companySelection && (
+                <p className="text-accent-coral text-sm mb-2">{errors.companySelection.message}</p>
+              )}
+              
+              {companySelection === 'Others' && (
+                <input
+                  {...register('customCompanyName')}
+                  className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring mt-1"
+                  placeholder="Enter custom company name"
+                />
+              )}
+              {companySelection === 'Others' && errors.customCompanyName && (
+                <p className="text-accent-coral text-sm mt-1">{errors.customCompanyName.message}</p>
               )}
             </div>
 
@@ -188,10 +227,23 @@ export function AddEmployee() {
                 {...register('password')}
                 type="password"
                 className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
-                placeholder="Enter password (min 6 chars)"
+                placeholder="Enter password (min 8 chars, strong)"
               />
-              {errors.password && (
-                <p className="text-accent-coral text-sm mt-1">{errors.password.message}</p>
+              {isPasswordDirty && (
+                <div className="mt-3 space-y-1.5">
+                  {passwordRules.map((rule, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      {rule.met ? (
+                        <Check className="w-4 h-4 text-accent-mint" />
+                      ) : (
+                        <X className="w-4 h-4 text-text-low" />
+                      )}
+                      <span className={rule.met ? 'text-accent-mint' : 'text-text-low'}>
+                        {rule.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

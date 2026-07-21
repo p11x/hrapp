@@ -1,7 +1,7 @@
 import { PageShell } from '../../components/PageShell'
 import { motion } from 'framer-motion'
-import { Plus, Phone, Mail, Trash2 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { Plus, Phone, Mail, Trash2, Search } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
 import { hrToast } from '../../components/HRCToast'
 import { useNavigate } from 'react-router-dom'
 import { getDatabase } from '../../firebase/config'
@@ -19,6 +19,7 @@ interface Employee {
 
 export function Employees() {
   const [statusFilter, setStatusFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -50,6 +51,7 @@ export function Employees() {
         setLoading(false)
       })
     })
+
     return () => {
       if (unsubscribe) unsubscribe()
     }
@@ -71,7 +73,15 @@ export function Employees() {
     }
   }
 
-  const filteredEmployees = employees.filter((emp) => statusFilter === 'All' || emp.status === statusFilter)
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((emp) => {
+      const matchesStatus = statusFilter === 'All' || emp.status === statusFilter;
+      const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            emp.role.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    })
+  }, [employees, statusFilter, searchQuery]);
 
   return (
     <PageShell title="Employee Management">
@@ -83,18 +93,29 @@ export function Employees() {
           <Plus className="w-4 h-4" />
           Add Employee
         </button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-body text-text-mid">Status</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-bg-surface border border-border-soft rounded-lg text-sm focus-ring text-text-hi"
-          >
-            <option value="All">All</option>
-            <option value="Active">Active</option>
-            <option value="On Leave">On Leave</option>
-          </select>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-low" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search employees..."
+              className="pl-9 pr-4 py-2 rounded-full border border-border-soft bg-bg-surface text-sm focus-ring w-48 md:w-64"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-body text-text-mid">Status</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 bg-bg-surface border border-border-soft rounded-lg text-sm focus-ring text-text-hi"
+            >
+              <option value="All">All</option>
+              <option value="Active">Active</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
         </div>
       </div>
 

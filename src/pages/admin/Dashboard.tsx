@@ -37,13 +37,20 @@ export function AdminDashboard() {
   const [leaves, setLeaves] = useState<Record<string, any>>({})
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredEmployees = useMemo(() => {
-    if (!selectedCompany) return employees
     return Object.fromEntries(
-      Object.entries(employees).filter(([_, emp]: [string, any]) => emp.companyName === selectedCompany)
+      Object.entries(employees).filter(([_, emp]: [string, any]) => {
+        const matchesCompany = !selectedCompany || emp.companyName === selectedCompany
+        const matchesSearch = !searchQuery || 
+          emp.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          emp.position?.toLowerCase().includes(searchQuery.toLowerCase())
+        return matchesCompany && matchesSearch
+      })
     )
-  }, [employees, selectedCompany])
+  }, [employees, selectedCompany, searchQuery])
 
   const employeeCount = Object.keys(filteredEmployees).length
 
@@ -271,6 +278,8 @@ export function AdminDashboard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-low" />
               <input
                 type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
                 className="pl-9 pr-4 py-2 rounded-full border border-border-soft bg-bg-surface text-sm focus-ring w-48"
               />

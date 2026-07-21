@@ -8,11 +8,11 @@ export const loginSchema = z.object({
 export const personalDetailsSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
   phone: z.string().min(1, 'Phone number is required').regex(/^\d+$/, 'Phone number must be numeric'),
-  whatsapp: z.string().optional(),
+  whatsapp: z.string().min(1, 'WhatsApp number is required').regex(/^\d+$/, 'WhatsApp number must be numeric'),
   email: z.string().email('Invalid email address'),
-  dob: z.string().optional(),
-  address: z.string().optional(),
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  dob: z.string().min(1, 'Date of birth is required'),
+  address: z.string().min(1, 'Address is required'),
+  gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Gender is required' }),
 })
 
 export const educationSchema = z.object({

@@ -64,7 +64,7 @@ export function EmployeeDashboard() {
     getDatabase().then((db: any) => {
       unsubDocs = db.onValue(`Documents/${userId}`, (snapshot: any) => {
         const data = snapshot.val() as Record<string, DocumentStatus> | undefined
-        if (data) setDocuments(data)
+        setDocuments(data || {})
       })
       unsubLeave = db.onValue(`leaveBalance/${userId}`, (snapshot: any) => {
         const data = snapshot.val() as LeaveBalance | undefined
@@ -216,17 +216,14 @@ export function EmployeeDashboard() {
     try {
       const db = await getDatabase()
       
-      // Get current sequence counter
-      const counterSnap = await db.get('system/employeeCounter')
-      let newCount = 1
-      if (counterSnap.exists()) {
-        newCount = (counterSnap.val() || 0) + 1
+      // Use employees count to generate a sequential ID
+      const empSnap = await db.get('employees')
+      let count = 1
+      if (empSnap.exists()) {
+        count = Object.keys(empSnap.val()).length + 1
       }
       
-      // Update counter
-      await db.set('system/employeeCounter', newCount)
-      
-      const code = 'EMP-' + newCount.toString().padStart(4, '0')
+      const code = 'EMP-' + count.toString().padStart(4, '0')
       const joinDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
       
       await db.update(`employees/${userId}`, {

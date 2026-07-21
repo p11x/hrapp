@@ -82,7 +82,12 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
             <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
               V
             </div>
-            {!collapsed && <span className="font-display font-semibold text-text-hi truncate">Vepcone Soft Systems</span>}
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="font-display font-semibold text-text-hi truncate">HR CORE</span>
+                <span className="text-[10px] text-text-mid font-medium truncate">By Vepcon Soft Systems</span>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -131,7 +136,10 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
             V
           </div>
-          <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">Vepcone Soft Systems</span>
+          <div className="flex flex-col">
+            <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">HR CORE</span>
+            <span className="text-[10px] text-text-mid font-medium truncate max-w-[200px]">By Vepcon Soft Systems</span>
+          </div>
         </div>
         <button
           onClick={() => setMobileMenuOpen(true)}
@@ -163,7 +171,10 @@ export function Sidebar({ onSignOut, isAdmin = false }: { onSignOut?: () => void
                   <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
                     V
                   </div>
-                  <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">Vepcone Soft Systems</span>
+                  <div className="flex flex-col">
+                    <span className="font-display font-semibold text-text-hi truncate max-w-[200px]">HR CORE</span>
+                    <span className="text-[10px] text-text-mid font-medium truncate max-w-[200px]">By Vepcon Soft Systems</span>
+                  </div>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}

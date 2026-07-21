@@ -67,9 +67,12 @@ export function Login() {
             <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-display font-bold text-lg">
               V
             </div>
-            <h1 className="text-2xl font-display font-semibold text-text-hi">
-              Vepcone Soft Systems
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-display font-semibold text-text-hi">
+                HR CORE
+              </h1>
+              <span className="text-xs text-text-mid font-medium">By Vepcon Soft Systems</span>
+            </div>
           </div>
 
 

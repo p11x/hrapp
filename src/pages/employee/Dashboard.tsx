@@ -118,7 +118,8 @@ export function EmployeeDashboard() {
     }
   }, [userId])
 
-  const uploadedCount = Object.values(documents).filter(d => d.uploaded).length
+  const requiredDocs = ['aadhaar', 'pan', 'resume', 'photo', 'signature']
+  const uploadedCount = requiredDocs.filter(key => documents[key]?.uploaded).length
   const totalDays = (leaveBalance?.casual || 0) + (leaveBalance?.sick || 0) + (leaveBalance?.vacation || 0)
   
   const usedDays = useMemo(() => {

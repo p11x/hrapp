@@ -128,11 +128,15 @@ export function EmployeeProfile() {
       if (docsData.exists()) {
         const docs = docsData.val() as Record<string, DocumentStatus>
         setDocuments({
+          ...docs,
           aadhaar: docs.aadhaar || { uploaded: false },
           pan: docs.pan || { uploaded: false },
           resume: docs.resume || { uploaded: false },
           photo: docs.photo || { uploaded: false },
           signature: docs.signature || { uploaded: false },
+          sslc: docs.sslc || { uploaded: false },
+          hsc: docs.hsc || { uploaded: false },
+          degree: docs.degree || { uploaded: false },
         })
       }
 

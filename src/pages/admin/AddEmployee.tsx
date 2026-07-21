@@ -28,7 +28,7 @@ export function AddEmployee() {
     formState: { errors },
   } = useForm<AddEmployeeFormData>({
     resolver: zodResolver(addEmployeeSchema),
-    defaultValues: { role: 'employee' },
+    defaultValues: { role: 'employee', companyName: 'Vepcon Soft Systems' },
   })
 
   const selectedRole = watch('role', 'employee')
@@ -130,7 +130,8 @@ export function AddEmployee() {
               </label>
               <input
                 {...register('companyName')}
-                className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
+                readOnly
+                className="w-full px-3 py-2 bg-bg-surface border border-border-soft rounded text-text-mid cursor-not-allowed focus:outline-none focus:border-primary transition-colors focus-ring"
                 placeholder="Enter company name"
               />
               {errors.companyName && (

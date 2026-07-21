@@ -221,6 +221,9 @@ export function Education() {
                   className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
                   placeholder="YYYY"
                 />
+                {errors.toYear && (
+                  <p className="text-accent-coral text-sm mt-1">{errors.toYear.message}</p>
+                )}
               </div>
             </div>
 

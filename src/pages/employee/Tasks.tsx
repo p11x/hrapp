@@ -1,5 +1,5 @@
 import { PageShell } from '../../components/PageShell'
-import { motion } from 'framer-motion'
+
 import { Paperclip, MessageSquare, Send } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getDatabase } from '../../firebase/config'
@@ -86,11 +86,15 @@ export function Tasks() {
   const completedTasks = myTasks.filter(t => t.status === 'Completed')
 
   const handleStatusChange = async (taskId: string, status: 'To Do' | 'In Progress' | 'Completed') => {
-    const db = await getDatabase()
-    const task = tasks.find(t => t.id === taskId)
-    if (task) {
-      await db.set(`tasks/${taskId}`, { ...task, status })
-      hrToast.success('Status Updated', `Task moved to ${status}`)
+    try {
+      const db = await getDatabase()
+      const task = tasks.find(t => t.id === taskId)
+      if (task) {
+        await db.update(`tasks/${taskId}`, { status })
+        hrToast.success('Status Updated', `Task moved to ${status}`)
+      }
+    } catch (error: any) {
+      hrToast.error('Update Failed', error?.message || 'Could not update task')
     }
   }
 
@@ -120,17 +124,29 @@ export function Tasks() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
           {[{ label: 'To Do', tasks: todoTasks }, { label: 'In Progress', tasks: inProgressTasks }, { label: 'Completed', tasks: completedTasks }].map((column) => (
-            <div key={column.label} className="bg-bg-surface border border-border-soft rounded-xl p-4">
+            <div 
+              key={column.label} 
+              className="bg-bg-surface border border-border-soft rounded-xl p-4"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const taskId = e.dataTransfer.getData('taskId')
+                if (taskId) {
+                  handleStatusChange(taskId, column.label as 'To Do' | 'In Progress' | 'Completed')
+                }
+              }}
+            >
               <h3 className="font-display font-semibold text-text-hi mb-4">{column.label}</h3>
               <div className="space-y-3">
                 {column.tasks.length === 0 && (
                   <div className="text-center py-4 text-text-mid text-xs">No tasks</div>
                 )}
                 {column.tasks.map((task) => (
-                  <motion.div
+                  <div
                     key={task.id}
-                    className="bg-bg-app border-l-4 border-primary rounded-lg p-3"
-                    whileHover={{ x: 2 }}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                    className="bg-bg-app border-l-4 border-primary rounded-lg p-3 cursor-grab active:cursor-grabbing hover:translate-x-0.5 transition-transform"
                   >
                     <h4 className="font-body font-medium text-text-hi text-sm mb-1">{task.title}</h4>
                     <p className="text-text-mid text-xs mb-2">{task.description}</p>
@@ -171,7 +187,7 @@ export function Tasks() {
                         <option value="Completed">Completed</option>
                       </select>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>

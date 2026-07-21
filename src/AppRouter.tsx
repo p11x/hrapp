@@ -137,6 +137,7 @@ function AdminLayout() {
             <Route path="leaves" element={<LeaveQueue />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="holidays" element={<Holidays />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="documents" element={<DocumentCenter />} />
             <Route path="attendance" element={<AttendanceViewer />} />
             <Route path="tickets" element={<Tickets />} />

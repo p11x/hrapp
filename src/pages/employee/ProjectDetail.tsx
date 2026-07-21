@@ -206,7 +206,7 @@ export function ProjectDetail() {
             <h3 className="text-lg font-display font-semibold text-text-hi">Team</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            {project.members.map((memId) => (
+            {(project.members || []).map((memId) => (
               <div key={memId} className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-accent-mint flex items-center justify-center text-white text-xs font-mono">
                   {employees[memId]?.name?.split(' ').map(n => n[0]).join('') || '?'}

@@ -254,10 +254,10 @@ export const seedData = {
     },
   },
   holidays: {
-    'hol-001': { date: '2024-01-26', name: 'Republic Day', type: 'national' },
-    'hol-002': { date: '2024-08-15', name: 'Independence Day', type: 'national' },
-    'hol-003': { date: '2024-12-25', name: 'Christmas', type: 'optional' },
-    'hol-004': { date: '2024-01-01', name: 'New Year', type: 'national' },
+    'hol-001': { date: '2026-01-26', name: 'Republic Day', type: 'national' },
+    'hol-002': { date: '2026-08-15', name: 'Independence Day', type: 'national' },
+    'hol-003': { date: '2026-12-25', name: 'Christmas', type: 'optional' },
+    'hol-004': { date: '2026-01-01', name: 'New Year', type: 'national' },
   },
   tickets: {
     'tic-001': {
@@ -561,7 +561,7 @@ export const seedData = {
   },
   messages: {
     'emp-001': {
-      'msg-001': { id: 'msg-001', text: 'Welcome to Vepcone!', read: true, createdAt: '2024-01-01' },
+      'msg-001': { id: 'msg-001', text: 'Welcome to Vepcone!', read: true, createdAt: '2026-01-01' },
     },
   },
   presence: {

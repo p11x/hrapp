@@ -4,6 +4,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tool
 import { useState, useEffect, useMemo } from 'react'
 import { getDatabase } from '../../firebase/config'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 interface DocumentStatus {
   uploaded: boolean
@@ -26,7 +27,9 @@ const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(pref
 
 export function AdminDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [documents, setDocuments] = useState<Record<string, Record<string, DocumentStatus>>>({})
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
 
   const [projects, setProjects] = useState<Project[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -38,6 +41,15 @@ export function AdminDashboard() {
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSearchResults, setShowSearchResults] = useState(false)
+
+  const dashboardEmployees = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(employees).filter(([_, emp]: [string, any]) => {
+        return !selectedCompany || emp.companyName === selectedCompany
+      })
+    )
+  }, [employees, selectedCompany])
 
   const filteredEmployees = useMemo(() => {
     return Object.fromEntries(
@@ -52,7 +64,7 @@ export function AdminDashboard() {
     )
   }, [employees, selectedCompany, searchQuery])
 
-  const employeeCount = Object.keys(filteredEmployees).length
+  const employeeCount = Object.keys(dashboardEmployees).length
 
   useEffect(() => {
     let unsubDocs: (() => void) | null = null
@@ -61,8 +73,20 @@ export function AdminDashboard() {
     let unsubEmps: (() => void) | null = null
     let unsubAttendance: (() => void) | null = null
     let unsubLeaves: (() => void) | null = null
+    let unsubNotifications: (() => void) | null = null
 
     getDatabase().then((db: any) => {
+      if (user?.uid) {
+        unsubNotifications = db.onValue(`notifications/${user.uid}`, (snapshot: any) => {
+          const data = snapshot.val() as Record<string, any> | undefined
+          if (data) {
+            const unreadCount = Object.values(data).filter(n => !n.read).length
+            setUnreadNotifications(unreadCount)
+          } else {
+            setUnreadNotifications(0)
+          }
+        })
+      }
       unsubDocs = db.onValue('Documents', (snapshot: any) => {
         const data = snapshot.val() as Record<string, Record<string, DocumentStatus>> | undefined
         if (data) setDocuments(data)
@@ -106,11 +130,12 @@ export function AdminDashboard() {
       if (unsubEmps) unsubEmps()
       if (unsubAttendance) unsubAttendance()
       if (unsubLeaves) unsubLeaves()
+      if (unsubNotifications) unsubNotifications()
     }
-  }, [])
+  }, [user?.uid])
 
   const employeeTrendData = useMemo(() => {
-    const count = Object.keys(filteredEmployees).length || 7
+    const count = Object.keys(dashboardEmployees).length || 7
     return [
       { name: 'Mon', value: Math.max(1, Math.round(count * 0.8)) },
       { name: 'Tue', value: Math.max(1, Math.round(count * 0.85)) },
@@ -120,7 +145,7 @@ export function AdminDashboard() {
       { name: 'Sat', value: count },
       { name: 'Sun', value: count },
     ]
-  }, [filteredEmployees])
+  }, [dashboardEmployees])
 
   const companyData = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -139,7 +164,7 @@ export function AdminDashboard() {
 
     // Count pending leaves for filtered employees
     Object.values(leaves).forEach((leave: any) => {
-      if (leave.employeeId && filteredEmployees[leave.employeeId] && leave.status === 'pending') {
+      if (leave.employeeId && dashboardEmployees[leave.employeeId] && leave.status === 'pending') {
         pendingLeavesCount++
       }
     })
@@ -156,7 +181,7 @@ export function AdminDashboard() {
 
     if (latestDate) {
       Object.entries(attendance).forEach(([userId, empRecord]: [string, any]) => {
-        if (filteredEmployees[userId] && empRecord && empRecord[latestDate]) {
+        if (dashboardEmployees[userId] && empRecord && empRecord[latestDate]) {
           const status = empRecord[latestDate].status
           if (status === 'present' || status === 'half-day') presentCount++
           else if (status === 'late') {
@@ -175,10 +200,10 @@ export function AdminDashboard() {
       { label: 'Absent', value: String(absentCount), icon: UserX, color: '#F472B6', borderColor: '#F472B6' },
       { label: 'Leave Apply', value: String(pendingLeavesCount), icon: CalendarClock, color: '#4F46E5', borderColor: '#4F46E5' },
     ]
-  }, [attendance, leaves, filteredEmployees])
+  }, [attendance, leaves, dashboardEmployees])
 
   const upcomingItems = useMemo(() => {
-    const list = Object.entries(filteredEmployees).slice(0, 4).map(([_, emp]: [string, any]) => {
+    const list = Object.entries(dashboardEmployees).slice(0, 4).map(([_, emp]: [string, any]) => {
       const name = emp.name || 'Employee'
       const avatar = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
       return {
@@ -189,7 +214,7 @@ export function AdminDashboard() {
       }
     })
     return list
-  }, [filteredEmployees])
+  }, [dashboardEmployees])
 
   const companiesList = useMemo(() => {
     const set = new Set<string>()
@@ -221,20 +246,20 @@ export function AdminDashboard() {
     if (!selectedCompany) return projects
     return projects.filter(p => {
       if (!p.members) return false
-      return p.members.some(memberId => filteredEmployees[memberId])
+      return p.members.some(memberId => dashboardEmployees[memberId])
     })
-  }, [projects, filteredEmployees, selectedCompany])
+  }, [projects, dashboardEmployees, selectedCompany])
 
   const filteredTickets = useMemo(() => {
     if (!selectedCompany) return tickets
     return tickets.filter(t => {
       if (!t.employee) return false
-      return Object.values(filteredEmployees).some((emp: any) => emp.name === t.employee)
+      return Object.values(dashboardEmployees).some((emp: any) => emp.name === t.employee)
     })
-  }, [tickets, filteredEmployees, selectedCompany])
+  }, [tickets, dashboardEmployees, selectedCompany])
 
   const docCompliance = Object.entries(documents).reduce((acc, [userId, userDocs]) => {
-    if (!filteredEmployees[userId] && Object.keys(filteredEmployees).length > 0) return acc
+    if (!dashboardEmployees[userId] && Object.keys(dashboardEmployees).length > 0) return acc
     
     // Define the required documents to match what's expected in DocumentCenter/Documents
     const requiredDocs = ['aadhaar', 'pan', 'resume', 'photo', 'signature']
@@ -243,7 +268,7 @@ export function AdminDashboard() {
     const allUploaded = requiredDocs.every(docKey => userDocs[docKey]?.uploaded)
     return allUploaded ? acc + 1 : acc
   }, 0)
-  const docTotal = Object.keys(documents).filter(userId => filteredEmployees[userId]).length
+  const docTotal = Object.keys(documents).filter(userId => dashboardEmployees[userId]).length
   const docPercentage = docTotal > 0 ? Math.round((docCompliance / docTotal) * 100) : 0
 
   const ticketStats = {
@@ -280,13 +305,49 @@ export function AdminDashboard() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="pl-9 pr-4 py-2 rounded-full border border-border-soft bg-bg-surface text-sm focus-ring w-48"
+                onFocus={() => setShowSearchResults(true)}
+                placeholder="Search employees..."
+                className="pl-9 pr-4 py-2 rounded-full border border-border-soft bg-bg-surface text-sm focus-ring w-48 md:w-64"
               />
+              {showSearchResults && searchQuery.length > 0 && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowSearchResults(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-full bg-bg-surface border border-border-soft rounded-lg shadow-xl py-2 z-20 max-h-80 overflow-y-auto">
+                    {Object.keys(filteredEmployees).length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-text-low text-center">No employees found</div>
+                    ) : (
+                      Object.entries(filteredEmployees).map(([id, emp]: [string, any]) => (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setShowSearchResults(false)
+                            setSearchQuery('')
+                            navigate(`/admin/employee/${id}`)
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-bg-app transition-colors flex items-center gap-3 focus-ring"
+                        >
+                           <div className="w-8 h-8 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-xs font-mono">
+                             {emp.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'E'}
+                           </div>
+                           <div className="overflow-hidden">
+                             <div className="text-sm font-medium text-text-hi truncate">{emp.name}</div>
+                             <div className="text-xs text-text-low truncate">{emp.companyName || 'No Company'}</div>
+                           </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-            <button className="p-2 rounded-full hover:bg-primary-dim transition-colors relative focus-ring">
+            <button 
+              onClick={() => navigate('/admin/notifications')}
+              className="p-2 rounded-full hover:bg-primary-dim transition-colors relative focus-ring"
+            >
               <Bell className="w-5 h-5 text-text-mid" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent-coral rounded-full" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-accent-coral rounded-full" />
+              )}
             </button>
             {/* Companies Dropdown */}
             <div className="relative">

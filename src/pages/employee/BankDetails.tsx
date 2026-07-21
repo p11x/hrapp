@@ -58,6 +58,7 @@ export function BankDetails() {
               </label>
               <input
                 {...register('accountNumber')}
+                maxLength={18}
                 className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring font-mono"
                 placeholder="Enter account number"
               />
@@ -100,7 +101,8 @@ export function BankDetails() {
               </label>
               <input
                 {...register('ifscCode')}
-                className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring font-mono"
+                maxLength={11}
+                className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring font-mono uppercase"
                 placeholder="Enter IFSC code"
               />
               {errors.ifscCode && (

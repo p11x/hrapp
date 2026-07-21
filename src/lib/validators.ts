@@ -7,10 +7,19 @@ export const loginSchema = z.object({
 
 export const personalDetailsSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
-  phone: z.string().min(1, 'Phone number is required').regex(/^\d+$/, 'Phone number must be numeric'),
-  whatsapp: z.string().min(1, 'WhatsApp number is required').regex(/^\d+$/, 'WhatsApp number must be numeric'),
+  phone: z.string().min(1, 'Phone number is required').regex(/^\d{10}$/, 'Phone number must be exactly 10 digits'),
+  whatsapp: z.string().min(1, 'WhatsApp number is required').regex(/^\d{10}$/, 'WhatsApp number must be exactly 10 digits'),
   email: z.string().email('Invalid email address'),
-  dob: z.string().min(1, 'Date of birth is required'),
+  dob: z.string().min(1, 'Date of birth is required').refine((date) => {
+    const dob = new Date(date)
+    const today = new Date()
+    let age = today.getFullYear() - dob.getFullYear()
+    const m = today.getMonth() - dob.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      age--
+    }
+    return age >= 18 && age <= 100
+  }, 'Employee must be between 18 and 100 years old'),
   address: z.string().min(1, 'Address is required'),
   gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Gender is required' }),
 })
@@ -28,13 +37,22 @@ export const educationSchema = z.object({
   fromYear: z.string().optional(),
   toYear: z.string().optional(),
   universityName: z.string().optional(),
-})
+}).refine((data) => {
+  if (data.fromYear && data.toYear) {
+    const from = parseInt(data.fromYear, 10)
+    const to = parseInt(data.toYear, 10)
+    if (!isNaN(from) && !isNaN(to)) {
+      return (to - from) <= 4 && (to - from) >= 0
+    }
+  }
+  return true
+}, { message: 'Gap between From Year and To Year cannot exceed 4 years', path: ['toYear'] })
 
 export const bankDetailsSchema = z.object({
   accountNumber: z.string().regex(/^\d{9,18}$/, 'Account number must be 9-18 digits'),
   bankName: z.string().min(1, 'Bank name is required'),
   branch: z.string().min(1, 'Branch is required'),
-  ifscCode: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Invalid IFSC code'),
+  ifscCode: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Invalid IFSC code (e.g. SBIN0001234)'),
 })
 
 export const leaveSchema = z.object({

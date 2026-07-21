@@ -170,6 +170,7 @@ export function Profile() {
               </label>
               <input
                 {...register('phone')}
+                maxLength={10}
                 className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
                 placeholder="Enter phone number"
               />
@@ -184,6 +185,7 @@ export function Profile() {
               </label>
               <input
                 {...register('whatsapp')}
+                maxLength={10}
                 className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
                 placeholder="Enter WhatsApp number"
               />
@@ -215,6 +217,8 @@ export function Profile() {
                 <input
                   {...register('dob')}
                   type="date"
+                  min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                   className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring appearance-none"
                 />
                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-low pointer-events-none" />

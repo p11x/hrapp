@@ -286,7 +286,12 @@ export function Chat() {
                     <span className="font-body text-text-hi">{emp.name}</span>
                   </button>
                 ))}
-              {allParticipants.filter(([id]) => id !== userId).length === 0 && (
+              {allParticipants
+                .filter(([id, emp]) => id !== userId && emp.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .length === 0 && searchQuery && (
+                <div className="text-center py-4 text-text-mid text-sm">No employees found</div>
+              )}
+              {allParticipants.filter(([id]) => id !== userId).length === 0 && !searchQuery && (
                 <div className="text-center py-4 text-text-mid text-sm">No other employees found</div>
               )}
             </div>

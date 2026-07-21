@@ -1,5 +1,5 @@
 import { PageShell } from '../../components/PageShell'
-import { motion } from 'framer-motion'
+
 import { Check, Edit, Plus, Paperclip, MessageSquare, Send } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { hrToast } from '../../components/HRCToast'
@@ -38,6 +38,7 @@ interface Project {
 export function TaskManagement() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [employees, setEmployees] = useState<Record<string, Employee>>({})
+  const [removedMembers, setRemovedMembers] = useState<Set<string>>(new Set())
   const [projects, setProjects] = useState<Record<string, Project>>({})
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -112,13 +113,21 @@ export function TaskManagement() {
     setEditingTask(null)
   }
 
-  const handleMarkComplete = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId)
-    if (task) {
+  const handleStatusChange = async (taskId: string, status: 'To Do' | 'In Progress' | 'Completed') => {
+    try {
       const db = await getDatabase()
-      await (db as any).set(`tasks/${taskId}`, { ...task, status: 'Completed' })
-      hrToast.success('Task Completed', 'Task marked as complete')
+      const task = tasks.find(t => t.id === taskId)
+      if (task) {
+        await (db as any).update(`tasks/${taskId}`, { status })
+        hrToast.success('Status Updated', `Task moved to ${status}`)
+      }
+    } catch (error: any) {
+      hrToast.error('Update Failed', error?.message || 'Could not update task')
     }
+  }
+
+  const handleMarkComplete = async (taskId: string) => {
+    await handleStatusChange(taskId, 'Completed')
   }
 
   const projectProgress = Object.entries(projects).map(([projectId, p]) => {
@@ -184,7 +193,10 @@ export function TaskManagement() {
         <div>
           <h3 className="text-sm font-medium text-text-low mb-2">Allocated Members</h3>
           <div className="space-y-2">
-            {Object.entries(employees).slice(0, 2).map(([id, emp]) => (
+            {Object.entries(employees)
+              .filter(([id]) => !removedMembers.has(id))
+              .slice(0, 2)
+              .map(([id, emp]) => (
               <div key={id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-accent-mint flex items-center justify-center text-white text-xs font-mono">
@@ -195,7 +207,10 @@ export function TaskManagement() {
                     <div className="text-text-mid text-xs">{emp.position}</div>
                   </div>
                 </div>
-                <button className="px-2 py-1 rounded-full bg-accent-coral/20 text-accent-coral text-xs font-medium">
+                <button 
+                  onClick={() => setRemovedMembers(prev => new Set([...prev, id]))}
+                  className="px-2 py-1 rounded-full bg-accent-coral/20 text-accent-coral text-xs font-medium focus-ring"
+                >
                   Remove
                 </button>
               </div>
@@ -217,17 +232,29 @@ export function TaskManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[{ label: 'To Do', tasks: todoTasks }, { label: 'In Progress', tasks: inProgressTasks }, { label: 'Completed', tasks: completedTasks }].map((column) => (
-          <div key={column.label} className="bg-bg-surface border border-border-soft rounded-xl p-4">
+          <div 
+            key={column.label} 
+            className="bg-bg-surface border border-border-soft rounded-xl p-4"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault()
+              const taskId = e.dataTransfer.getData('taskId')
+              if (taskId) {
+                handleStatusChange(taskId, column.label as 'To Do' | 'In Progress' | 'Completed')
+              }
+            }}
+          >
             <h3 className="font-display font-semibold text-text-hi mb-4">{column.label}</h3>
             <div className="space-y-3">
               {column.tasks.length === 0 && (
                 <div className="text-center py-4 text-text-mid text-xs">No tasks</div>
               )}
               {column.tasks.map((task) => (
-                <motion.div
+                <div
                   key={task.id}
-                  className="bg-bg-app border-l-4 border-primary rounded-lg p-3"
-                  whileHover={{ x: 2 }}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                  className="bg-bg-app border-l-4 border-primary rounded-lg p-3 cursor-grab active:cursor-grabbing hover:translate-x-0.5 transition-transform"
                 >
                   <h4 className="font-body font-medium text-text-hi text-sm mb-1">{task.title}</h4>
                   <p className="text-text-mid text-xs mb-2">{task.description}</p>
@@ -268,7 +295,7 @@ export function TaskManagement() {
                       <Edit className="w-3 h-3 text-text-low" />
                     </button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>

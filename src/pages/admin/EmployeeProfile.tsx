@@ -166,6 +166,21 @@ export function EmployeeProfile() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!employeeId) return
+
+    if (editData.dob) {
+      const dobDate = new Date(editData.dob)
+      const today = new Date()
+      let age = today.getFullYear() - dobDate.getFullYear()
+      const m = today.getMonth() - dobDate.getMonth()
+      if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+        age--
+      }
+      if (age < 18 || age > 100) {
+        hrToast.error('Invalid DOB', 'Employee must be between 18 and 100 years old')
+        return
+      }
+    }
+
     setUpdating(true)
     try {
       const db = await getDatabase()
@@ -417,6 +432,7 @@ export function EmployeeProfile() {
                   <input
                     value={editData.phone || ''}
                     onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                    maxLength={10}
                     className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
                   />
                 </div>
@@ -425,6 +441,7 @@ export function EmployeeProfile() {
                   <input
                     value={editData.whatsapp || ''}
                     onChange={(e) => setEditData({...editData, whatsapp: e.target.value})}
+                    maxLength={10}
                     className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"
                   />
                 </div>
@@ -432,6 +449,8 @@ export function EmployeeProfile() {
                   <label className="block text-sm text-text-mid mb-1">DOB</label>
                   <input
                     type="date"
+                    min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                     value={editData.dob || ''}
                     onChange={(e) => setEditData({...editData, dob: e.target.value})}
                     className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus-ring text-sm"

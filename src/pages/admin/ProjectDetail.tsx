@@ -261,7 +261,7 @@ export function ProjectDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            {project.members.map((memId) => (
+            {(project.members || []).map((memId) => (
               <div key={memId} className="flex items-center gap-2 bg-bg-app rounded-lg px-2 py-1">
                 <div className="w-8 h-8 rounded-full bg-accent-mint flex items-center justify-center text-white text-xs font-mono">
                   {employees[memId]?.name?.split(' ').map(n => n[0]).join('') || '?'}

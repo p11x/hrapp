@@ -45,10 +45,16 @@ const deleteNestedValue = (path: string) => {
 }
 
 const notifyListeners = (path: string) => {
-  const value = getNestedValue(path)
-  if (value === undefined) return
-  const snapshot = { val: () => value, key: path }
-  ;(listeners[path] || []).forEach((cb) => cb(snapshot))
+  const parts = path.split('/')
+  let currentPath = ''
+  for (let i = 0; i < parts.length; i++) {
+    currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i]
+    const value = getNestedValue(currentPath)
+    if (value !== undefined) {
+      const snapshot = { val: () => value, key: currentPath }
+      ;(listeners[currentPath] || []).forEach((cb) => cb(snapshot))
+    }
+  }
 }
 
 const simulateRailEvents = () => {

@@ -14,7 +14,7 @@ interface HolidayEvent {
 }
 
 export function Holidays() {
-  const [currentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [holidays, setHolidays] = useState<HolidayEvent[]>([])
   const [holidayName, setHolidayName] = useState('')
   const [holidayDate, setHolidayDate] = useState('')
@@ -81,13 +81,22 @@ export function Holidays() {
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg border border-border-soft hover:bg-bg-app transition-colors">
+            <button 
+              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+              className="p-2 rounded-lg border border-border-soft hover:bg-bg-app transition-colors focus-ring"
+            >
               <ChevronLeft className="w-4 h-4 text-text-mid" />
             </button>
-            <button className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium">
+            <button 
+              onClick={() => setCurrentMonth(new Date())}
+              className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium focus-ring"
+            >
               Today
             </button>
-            <button className="p-2 rounded-lg border border-border-soft hover:bg-bg-app transition-colors">
+            <button 
+              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+              className="p-2 rounded-lg border border-border-soft hover:bg-bg-app transition-colors focus-ring"
+            >
               <ChevronRight className="w-4 h-4 text-text-mid" />
             </button>
           </div>

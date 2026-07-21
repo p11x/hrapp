@@ -38,6 +38,7 @@ export function EmployeeDashboard() {
   const [documents, setDocuments] = useState<Record<string, DocumentStatus>>({})
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null)
   const [tickets, setTickets] = useState<TicketItem[]>([])
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   
   const [personalDetails, setPersonalDetails] = useState<any>(null)
   const [educationDetails, setEducationDetails] = useState<any>(null)
@@ -60,12 +61,24 @@ export function EmployeeDashboard() {
     let unsubEmployee: (() => void) | null = null
     let unsubAttendance: (() => void) | null = null
     let unsubLeaves: (() => void) | null = null
+    let unsubNotifications: (() => void) | null = null
 
     getDatabase().then((db: any) => {
       unsubDocs = db.onValue(`Documents/${userId}`, (snapshot: any) => {
         const data = snapshot.val() as Record<string, DocumentStatus> | undefined
         setDocuments(data || {})
       })
+      
+      unsubNotifications = db.onValue(`notifications/${userId}`, (snapshot: any) => {
+        const data = snapshot.val() as Record<string, any> | undefined
+        if (data) {
+          const unreadCount = Object.values(data).filter(n => !n.read).length
+          setUnreadNotifications(unreadCount)
+        } else {
+          setUnreadNotifications(0)
+        }
+      })
+      
       unsubLeave = db.onValue(`leaveBalance/${userId}`, (snapshot: any) => {
         const data = snapshot.val() as LeaveBalance | undefined
         if (data) setLeaveBalance(data)
@@ -115,6 +128,7 @@ export function EmployeeDashboard() {
       if (unsubEmployee) unsubEmployee()
       if (unsubAttendance) unsubAttendance()
       if (unsubLeaves) unsubLeaves()
+      if (unsubNotifications) unsubNotifications()
     }
   }, [userId])
 
@@ -262,9 +276,14 @@ export function EmployeeDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-primary-dim transition-colors relative focus-ring">
+            <button 
+              onClick={() => navigate('/employee/notifications')}
+              className="p-2 rounded-full hover:bg-primary-dim transition-colors relative focus-ring"
+            >
               <Bell className="w-5 h-5 text-text-mid" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent-coral rounded-full" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-accent-coral rounded-full" />
+              )}
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-border-soft">
               <button 

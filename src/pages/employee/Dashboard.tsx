@@ -9,10 +9,6 @@ import {
   Banknote,
   ChevronRight,
   Sparkles,
-  Building2,
-  Briefcase,
-  Save,
-  Edit2
 } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts'
 import { useState, useEffect, useMemo } from 'react'
@@ -50,10 +46,6 @@ export function EmployeeDashboard() {
   
   const [attendance, setAttendance] = useState<any>(null)
   const [leaves, setLeaves] = useState<any[]>([])
-
-  const [isEditingJobInfo, setIsEditingJobInfo] = useState(false)
-  const [jobPosition, setJobPosition] = useState('')
-  const [jobCompany, setJobCompany] = useState('')
 
   const userName = user?.email?.split('@')[0] || 'Employee'
   const userId = user?.uid || 'emp-001'
@@ -213,7 +205,6 @@ export function EmployeeDashboard() {
     {
       id: 4,
       name: 'Bank Details',
-      desc: 'Save your bank account info',
       isComplete: isStep4Complete,
       path: '/employee/bank-details',
       icon: Banknote,
@@ -255,38 +246,6 @@ export function EmployeeDashboard() {
       hrToast.error('Generation Failed', error?.message || 'Unable to generate employee code')
     }
   }
-
-  const handleSaveJobInfo = async () => {
-    if (!jobPosition.trim() || !jobCompany.trim()) {
-      hrToast.error('Validation Failed', 'Position and Company Name cannot be empty')
-      return
-    }
-    
-    try {
-      const db = await getDatabase()
-      await db.update(`employees/${userId}`, {
-        position: jobPosition.trim(),
-        companyName: jobCompany.trim()
-      })
-      await db.update(`users/${userId}`, {
-        position: jobPosition.trim(),
-        companyName: jobCompany.trim()
-      })
-      setIsEditingJobInfo(false)
-      hrToast.success('Saved', 'Job information updated successfully')
-    } catch (error: any) {
-      console.error('Failed to save job info:', error)
-      hrToast.error('Save Failed', error?.message || 'Unable to save job information')
-    }
-  }
-
-  // Populate form with existing data when entering edit mode
-  useEffect(() => {
-    if (isEditingJobInfo && employeeDbData) {
-      setJobPosition(employeeDbData.position || '')
-      setJobCompany(employeeDbData.companyName || '')
-    }
-  }, [isEditingJobInfo, employeeDbData])
 
   return (
     <motion.div
@@ -446,99 +405,6 @@ export function EmployeeDashboard() {
               )}
             </motion.div>
           )}
-        </motion.div>
-
-        {/* Job Information Card */}
-        <motion.div
-          className="bg-surface border border-border-soft rounded-xl p-6 mb-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-semibold text-text-hi flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-primary" /> Job Information
-            </h2>
-            {!isEditingJobInfo ? (
-              <button
-                onClick={() => setIsEditingJobInfo(true)}
-                className="px-3 py-1.5 border border-border-soft hover:bg-bg-app rounded-lg text-xs font-semibold text-text-mid flex items-center gap-1.5 transition-colors focus-ring"
-              >
-                <Edit2 className="w-3.5 h-3.5" /> Edit Info
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsEditingJobInfo(false)}
-                  className="px-3 py-1.5 border border-border-soft hover:bg-bg-app rounded-lg text-xs font-semibold text-text-mid transition-colors focus-ring"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveJobInfo}
-                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors focus-ring"
-                >
-                  <Save className="w-3.5 h-3.5" /> Save
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-text-low uppercase tracking-wider mb-1.5">Position / Job Title</label>
-              {isEditingJobInfo ? (
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-low">
-                    <Briefcase className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    value={jobPosition}
-                    onChange={(e) => setJobPosition(e.target.value)}
-                    placeholder="e.g. Software Engineer"
-                    className="w-full pl-9 pr-4 py-2.5 bg-bg-app border border-border-soft rounded-lg text-sm text-text-hi focus-ring"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 p-3 bg-bg-app rounded-lg border border-transparent">
-                  <div className="w-8 h-8 rounded-md bg-primary-dim text-primary flex items-center justify-center">
-                    <Briefcase className="w-4 h-4" />
-                  </div>
-                  <span className="font-semibold text-text-hi text-sm">
-                    {employeeDbData?.position || 'Not specified'}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-xs font-semibold text-text-low uppercase tracking-wider mb-1.5">Company Name</label>
-              {isEditingJobInfo ? (
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-low">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    value={jobCompany}
-                    onChange={(e) => setJobCompany(e.target.value)}
-                    placeholder="e.g. Acme Corp"
-                    className="w-full pl-9 pr-4 py-2.5 bg-bg-app border border-border-soft rounded-lg text-sm text-text-hi focus-ring"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 p-3 bg-bg-app rounded-lg border border-transparent">
-                  <div className="w-8 h-8 rounded-md bg-accent-mint/20 text-accent-mint flex items-center justify-center">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <span className="font-semibold text-text-hi text-sm">
-                    {employeeDbData?.companyName || 'Not specified'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

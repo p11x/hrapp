@@ -11,6 +11,7 @@ const addEmployeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   companyName: z.string().min(1, 'Company Name is required'),
+  position: z.string().min(1, 'Position / Job Title is required'),
   role: z.enum(['employee', 'admin']),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
@@ -65,7 +66,7 @@ export function AddEmployee() {
         email: data.email,
         fullName: data.name,
         companyName: data.companyName,
-        position: '',
+        position: data.position,
         role: data.role
       })
       
@@ -73,7 +74,7 @@ export function AddEmployee() {
       await (primaryDb as any).set(`employees/${uid}`, {
         name: data.name,
         companyName: data.companyName,
-        position: '',
+        position: data.position,
         role: data.role,
       })
       
@@ -134,6 +135,20 @@ export function AddEmployee() {
               />
               {errors.companyName && (
                 <p className="text-accent-coral text-sm mt-1">{errors.companyName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-mid mb-1.5 uppercase tracking-wider">
+                POSITION / JOB TITLE <span className="text-accent-coral">*</span>
+              </label>
+              <input
+                {...register('position')}
+                className="w-full px-3 py-2 bg-surface border border-border-soft rounded text-text-hi focus:outline-none focus:border-primary transition-colors focus-ring"
+                placeholder="Enter job title"
+              />
+              {errors.position && (
+                <p className="text-accent-coral text-sm mt-1">{errors.position.message}</p>
               )}
             </div>
 

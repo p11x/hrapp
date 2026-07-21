@@ -14,6 +14,8 @@ export function Profile() {
   const { user } = useAuth()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [position, setPosition] = useState<string>('')
+
   const {
     register,
     handleSubmit,
@@ -31,8 +33,9 @@ export function Profile() {
       getDatabase().then(async (db: any) => {
         try {
           const snapshot = await db.get(`users/${user.uid}`)
-          const data = snapshot.val() as Partial<PersonalDetailsFormData> & { avatar?: string } | null
+          const data = snapshot.val() as Partial<PersonalDetailsFormData> & { avatar?: string, position?: string } | null
           if (data) {
+            setPosition(data.position || 'Employee')
             reset({
               fullName: data.fullName || user.displayName || '',
               phone: data.phone || '',
@@ -134,7 +137,12 @@ export function Profile() {
               <Camera className="w-4 h-4 text-white" />
             </button>
           </div>
-          <p className="text-text-mid text-sm">Tap camera to change photo</p>
+          <p className="text-text-mid text-sm mb-3">Tap camera to change photo</p>
+          {position && (
+            <div className="px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-full mt-2">
+              {position}
+            </div>
+          )}
         </motion.div>
 
         <motion.div

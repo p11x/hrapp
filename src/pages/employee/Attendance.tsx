@@ -58,14 +58,19 @@ export function Attendance() {
     if (!user?.uid) return
 
     const now = new Date()
+    if (now.getDay() === 0) {
+      hrToast.error('Not Allowed', 'Cannot punch on Sunday (Holiday)')
+      return
+    }
+
     const hours = now.getHours()
 
     const db = await getDatabase()
     const today = now.toISOString().split('T')[0]
     
     if (punchState === 'out') {
-      if (hours < 9) {
-        hrToast.error('Not Allowed', 'Punch in is only allowed from 9:00 AM onwards')
+      if (hours < 9 || hours >= 13) {
+        hrToast.error('Not Allowed', 'Punch in is only allowed from 9:00 AM to 1:00 PM')
         return
       }
 
@@ -184,6 +189,11 @@ export function Attendance() {
     return todayItem ? todayItem.percentage : 0
   }, [progressData])
 
+  const isSunday = new Date().getDay() === 0
+  const currentHour = new Date().getHours()
+  const isPunchInWindow = currentHour >= 9 && currentHour < 13
+  const showPunchButton = !isSunday && (punchState === 'in' || isPunchInWindow)
+
   return (
     <PageShell title="Attendance">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -196,9 +206,13 @@ export function Attendance() {
               <div className="w-12 h-12 rounded-full bg-accent-mint flex items-center justify-center text-white mr-2">
                 📅
               </div>
-              <h3 className="text-lg font-display font-semibold text-text-hi">Working Today</h3>
+              <h3 className="text-lg font-display font-semibold text-text-hi">
+                {isSunday ? 'Holiday (Sunday)' : 'Working Today'}
+              </h3>
             </div>
-            <p className="text-text-mid font-body text-sm mb-6">Punching: {punchState === 'in' ? 'Active' : 'Not started'}</p>
+            {!isSunday && (
+              <p className="text-text-mid font-body text-sm mb-6">Punching: {punchState === 'in' ? 'Active' : 'Not started'}</p>
+            )}
           </div>
 
           <div className="relative w-48 h-48 mx-auto mb-6">
@@ -221,13 +235,19 @@ export function Attendance() {
             </svg>
           </div>
 
-          <button 
-            onClick={handlePunch}
-            className="mx-auto block px-6 py-2 bg-primary text-white rounded-full font-medium flex items-center gap-2 focus-ring"
-          >
-            {punchState === 'in' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {punchState === 'in' ? 'Punch Out' : 'Punch In'}
-          </button>
+          {showPunchButton ? (
+            <button 
+              onClick={handlePunch}
+              className="mx-auto flex px-6 py-2 bg-primary text-white rounded-full font-medium items-center gap-2 focus-ring"
+            >
+              {punchState === 'in' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {punchState === 'in' ? 'Punch Out' : 'Punch In'}
+            </button>
+          ) : !isSunday && punchState === 'out' ? (
+            <div className="text-center text-accent-coral text-sm font-semibold">
+              Punch In is only available from 9:00 AM to 1:00 PM.
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-4 mb-4 mt-6">
             {progressData.map((item) => (

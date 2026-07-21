@@ -17,6 +17,7 @@ export function VirtualID() {
     if (user?.uid) {
       let unsubEmp: (() => void) | null = null
       let unsubUser: (() => void) | null = null
+      
       getDatabase().then((db: any) => {
         unsubEmp = db.onValue(`employees/${user.uid}`, (snapshot: any) => {
           const data = snapshot.val()
@@ -24,6 +25,7 @@ export function VirtualID() {
             setEmployeeData(data)
           }
         })
+        
         unsubUser = db.onValue(`users/${user.uid}`, (snapshot: any) => {
           const data = snapshot.val()
           if (data) {
@@ -31,6 +33,7 @@ export function VirtualID() {
           }
         })
       })
+      
       return () => {
         if (unsubEmp) unsubEmp()
         if (unsubUser) unsubUser()
@@ -52,16 +55,19 @@ export function VirtualID() {
 
     setIsUploading(true)
     const reader = new FileReader()
+    
     reader.onloadend = async () => {
       try {
         const base64String = reader.result as string
         const db = await getDatabase()
+        
         await db.update(`employees/${user?.uid}`, {
           avatar: base64String
         })
         await db.update(`users/${user?.uid}`, {
           avatar: base64String
         })
+        
         hrToast.success('Success', 'Profile picture updated')
       } catch (error) {
         console.error('Failed to update avatar:', error)
@@ -70,6 +76,7 @@ export function VirtualID() {
         setIsUploading(false)
       }
     }
+    
     reader.readAsDataURL(file)
   }
 

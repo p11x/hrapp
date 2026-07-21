@@ -267,9 +267,13 @@ export function EmployeeDashboard() {
               <span className="absolute top-1 right-1 w-2 h-2 bg-accent-coral rounded-full" />
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-border-soft">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+              <button 
+                onClick={() => navigate('/employee/digital-id')}
+                className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium hover:bg-primary-dim transition-colors focus-ring"
+                aria-label="View Digital ID"
+              >
                 <User className="w-5 h-5" />
-              </div>
+              </button>
               <span className="text-sm font-body">{userName}</span>
             </div>
           </div>

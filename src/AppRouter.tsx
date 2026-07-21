@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 
 const EmployeeDashboard = lazy(() => import('./pages/employee/Dashboard').then(m => ({ default: m.EmployeeDashboard })))
 const VirtualID = lazy(() => import('./pages/employee/VirtualID').then(m => ({ default: m.VirtualID })))
+const DigitalID = lazy(() => import('./pages/employee/DigitalID').then(m => ({ default: m.DigitalID })))
 const Profile = lazy(() => import('./pages/employee/Profile').then(m => ({ default: m.Profile })))
 const Leave = lazy(() => import('./pages/employee/Leave').then(m => ({ default: m.Leave })))
 const Attendance = lazy(() => import('./pages/employee/Attendance').then(m => ({ default: m.Attendance })))
@@ -91,6 +92,7 @@ function EmployeeLayout() {
           <Routes>
             <Route path="dashboard" element={<EmployeeDashboard />} />
             <Route path="virtual-id" element={<VirtualID />} />
+            <Route path="digital-id" element={<DigitalID />} />
             <Route path="profile" element={<Profile />} />
             <Route path="leave" element={<Leave />} />
             <Route path="attendance" element={<Attendance />} />

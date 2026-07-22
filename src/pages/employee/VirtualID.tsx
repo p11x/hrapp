@@ -105,8 +105,8 @@ export function VirtualID() {
                 <div className="w-full h-full flex items-center justify-center text-primary bg-primary/5">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : mergedData?.avatar ? (
-                <img src={mergedData.avatar} alt="Profile" className="w-full h-full object-cover" />
+              ) : mergedData?.avatar && (mergedData.avatar.startsWith('data:image') || mergedData.avatar.startsWith('http')) ? (
+                <img src={mergedData.avatar} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-text-low bg-primary/5">
                   <User className="w-16 h-16 text-primary/40" />

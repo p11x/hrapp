@@ -1,0 +1,1 @@
+sed -i 's/<img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" \/>/<img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={() => setAvatarUrl(null)} \/>/g' src/pages/employee/Profile.tsx

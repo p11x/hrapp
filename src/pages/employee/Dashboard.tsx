@@ -287,9 +287,9 @@ export function EmployeeDashboard() {
             </button>
             <div className="flex items-center gap-2 pl-2 border-l border-border-soft">
               <button 
-                onClick={() => navigate('/employee/digital-id')}
+                onClick={() => navigate('/employee/profile')}
                 className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium hover:bg-primary-dim transition-colors focus-ring"
-                aria-label="View Digital ID"
+                aria-label="View Profile"
               >
                 <User className="w-5 h-5" />
               </button>

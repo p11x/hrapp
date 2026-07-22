@@ -29,6 +29,7 @@ import {
   Menu,
   X,
   IdCard,
+  Contact,
 } from 'lucide-react'
 
 const adminNavItems = [
@@ -50,6 +51,7 @@ const adminNavItems = [
 const employeeNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/employee/dashboard', showDot: true },
   { icon: IdCard, label: 'Virtual ID', path: '/employee/virtual-id', showDot: false },
+  { icon: Contact, label: 'Digital ID', path: '/employee/digital-id', showDot: false },
   { icon: Bell, label: 'Notifications', path: '/employee/notifications', showDot: true },
   { icon: Gift, label: 'Holidays', path: '/employee/holidays', showDot: false },
   { icon: Users, label: 'Directory', path: '/employee/directory', showDot: false },

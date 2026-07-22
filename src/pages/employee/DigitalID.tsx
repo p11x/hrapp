@@ -1,22 +1,20 @@
 import { PageShell } from '../../components/PageShell'
 import { useAuth } from '../../context/AuthContext'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { getDatabase } from '../../firebase/config'
-import { Camera, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { hrToast } from '../../components/HRCToast'
 
 export function DigitalID() {
   const { user } = useAuth()
   const [employeeData, setEmployeeData] = useState<any>(null)
   const [userData, setUserData] = useState<any>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   useEffect(() => {
     if (user?.uid) {
       let unsubEmp: (() => void) | null = null
       let unsubUser: (() => void) | null = null
+
       getDatabase().then((db: any) => {
         unsubEmp = db.onValue(`employees/${user.uid}`, (snapshot: any) => {
           const data = snapshot.val()
@@ -24,6 +22,7 @@ export function DigitalID() {
             setEmployeeData(data)
           }
         })
+
         unsubUser = db.onValue(`users/${user.uid}`, (snapshot: any) => {
           const data = snapshot.val()
           if (data) {
@@ -31,6 +30,7 @@ export function DigitalID() {
           }
         })
       })
+
       return () => {
         if (unsubEmp) unsubEmp()
         if (unsubUser) unsubUser()
@@ -39,43 +39,6 @@ export function DigitalID() {
   }, [user?.uid])
 
   const mergedData = { ...userData, ...employeeData }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Limit file size to 2MB
-    if (file.size > 2 * 1024 * 1024) {
-      hrToast.error('Upload Failed', 'Image must be less than 2MB')
-      return
-    }
-
-    setIsUploading(true)
-    const reader = new FileReader()
-    reader.onloadend = async () => {
-      try {
-        const base64String = reader.result as string
-        const db = await getDatabase()
-        await db.update(`employees/${user?.uid}`, {
-          avatar: base64String
-        })
-        await db.update(`users/${user?.uid}`, {
-          avatar: base64String
-        })
-        hrToast.success('Success', 'Profile picture updated')
-      } catch (error) {
-        console.error('Failed to update avatar:', error)
-        hrToast.error('Error', 'Failed to update profile picture')
-      } finally {
-        setIsUploading(false)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click()
-  }
 
   return (
     <PageShell title="Digital ID">
@@ -86,7 +49,7 @@ export function DigitalID() {
           className="w-[320px] h-[480px] bg-white rounded-xl shadow-2xl relative overflow-hidden flex flex-col items-center border border-gray-200"
         >
           {/* Top Logo Section */}
-          <div className="w-[220px] bg-[#222222] mt-8 rounded-md py-4 flex flex-col items-center justify-center z-10 shadow-md">
+          <div className="w-[220px] bg-[#222222] mt-8 rounded-md py-4 flex flex-col items-center justify-center z-10 shadow-md"> 
              <div className="flex items-center">
                 <svg width="32" height="28" viewBox="0 0 32 28" className="mr-0.5">
                   <path d="M2,4 L16,4 L9,24 Z" fill="#E31E24" />
@@ -105,6 +68,7 @@ export function DigitalID() {
             <path d="M-20,290 C120,290 180,240 340,160 L340,320 C180,320 100,320 -20,310 Z" fill="#e66827" />
             <path d="M-20,270 C100,280 180,250 340,180 L340,260 C200,280 100,290 -20,280 Z" fill="#E31E24" />
             <path d="M-20,265 C60,265 140,255 240,210 L340,160 L340,190 C220,240 100,275 -20,275 Z" fill="#d91e23" />
+            
             {/* Bottom rectangles */}
             <rect x="20" y="460" width="280" height="8" fill="#e66827" rx="3" />
             <rect x="20" y="460" width="80" height="8" fill="#E31E24" rx="3" />
@@ -113,31 +77,16 @@ export function DigitalID() {
           {/* Photo */}
           <div className="mt-8 z-10">
             <div 
-              className="w-[140px] h-[140px] rounded-full overflow-hidden border-[6px] border-[#1f1f1f] shadow-lg bg-gray-100 relative group cursor-pointer flex items-center justify-center"
-              onClick={handleAvatarClick}
+              className="w-[140px] h-[140px] rounded-full overflow-hidden border-[6px] border-[#1f1f1f] shadow-lg bg-gray-100 relative flex items-center justify-center"
             >
-              {isUploading ? (
-                <div className="w-full h-full flex items-center justify-center text-[#E31E24] bg-white">
-                  <div className="w-8 h-8 border-2 border-[#E31E24] border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : mergedData?.avatar ? (
-                <img src={mergedData.avatar} alt="Profile" className="w-full h-full object-cover" />
+              {mergedData?.avatar && (mergedData.avatar.startsWith('data:image') || mergedData.avatar.startsWith('http')) ? (
+                <img src={mergedData.avatar} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 bg-white">
                   <User className="w-20 h-20" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="w-8 h-8 text-white" />
-              </div>
             </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              accept="image/*" 
-              className="hidden" 
-            />
           </div>
 
           {/* Details */}

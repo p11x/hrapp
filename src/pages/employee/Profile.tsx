@@ -76,8 +76,15 @@ export function Profile() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (file) {
-        const url = URL.createObjectURL(file)
-        setAvatarUrl(url)
+        if (file.size > 2 * 1024 * 1024) {
+          hrToast.error('Upload Failed', 'Image must be less than 2MB')
+          return
+        }
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setAvatarUrl(reader.result as string)
+        }
+        reader.readAsDataURL(file)
       }
     }
     input.click()
@@ -121,8 +128,8 @@ export function Profile() {
         >
           <div className="relative mb-3">
             <div className="w-24 h-24 bg-primary-dim border-2 border-primary rounded-full flex items-center justify-center overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              {avatarUrl && (avatarUrl.startsWith('data:image') || avatarUrl.startsWith('http')) ? (
+                <img src={avatarUrl} alt="" className="w-full h-full object-cover" onError={() => setAvatarUrl(null)} />
               ) : (
                 <span className="text-3xl font-mono font-semibold text-primary">
                   {getInitials(user?.email?.split('@')[0] || 'User')}
